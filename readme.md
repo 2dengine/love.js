@@ -21,7 +21,15 @@ Player controls can be enabled using the following parameter:
 example.com/player/?g=mygame.love&f=1
 ```
 
+## Cookie consent
+To disable the cookie consent dialog you need to call the following function before the game loads:
+```
+setCookie('cookie_consent', true);
+```
+
 ## Credits
 https://github.com/Davidobot/love.js
 
 https://github.com/TannerRogalsky/love.js/
+
+https://projects.lukehaas.me/css-loaders/
