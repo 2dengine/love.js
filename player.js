@@ -41,9 +41,11 @@ class Player {
   error(msg) {
     console.log(msg);
     if (this.state != 'failed') {
+      if (this.state != 'playing') {
+        modal.classList.add("error");
+        overlay.style.display = "block";
+      }
       this.state = 'failed';
-      modal.classList.add("error");
-      overlay.style.display = "block";
     }
   }
   finished() {
