@@ -6,20 +6,11 @@ if (typeof Module === 'undefined')
 Module.MAX_MEMORY = (navigator.deviceMemory || 1)*1e+9;
 Module.INITIAL_MEMORY = Math.floor(Module.MAX_MEMORY/6);
 
-/*
-Module.remainingDependencies = 0;
-Module.totalDependencies = 0;
-Module.monitorRunDependencies = function(left) {
-  Module.remainingDependencies = left;
-  Module.totalDependencies = Math.max(Module.totalDependencies, left);
-}
-*/
-
 var LoadModule = function(uri) {
   let pkg = uri.substring(uri.lastIndexOf('/') + 1);
   
   var runWithFS = function() {
-    /* Fetch a package from the specified URL */
+    // Fetch a package from the specified URL
     function fetchRemotePackage(url, callback) {
       let xhr = new XMLHttpRequest();
       xhr.open('GET', url, true);
@@ -35,7 +26,7 @@ var LoadModule = function(uri) {
       };
       xhr.send(null);
     };
-    /* Check if there's a cached package, and if so whether it's the latest available */
+    // Check if there's a cached package, and if so whether it's the latest available
     function fetchCachedPackage(db, packageName, callback) {
       let transaction = db.transaction(['PACKAGES'], "readonly");
       let meta = transaction.objectStore('PACKAGES');
@@ -102,7 +93,6 @@ var LoadModule = function(uri) {
     let indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
     openDatabase(indexedDB, function(db) {
       fetchCachedPackage(db, pkg, function(result) {
-        //Module.preloadResults[pkg] = {fromCache: useCached};
         console.info('loading ' + pkg);
         if (!result || !processPackageData(result)) {
           console.info('fetching ' + uri);
@@ -115,7 +105,6 @@ var LoadModule = function(uri) {
     });
   }
   
-  //Module.expectedDataFileDownloads ++;
   Module.arguments = [pkg];
   Module.INITIAL_MEMORY = Math.min(Module.INITIAL_MEMORY, Module.MAX_MEMORY);
 
@@ -126,7 +115,6 @@ var LoadModule = function(uri) {
     if (!Module.preRun) Module.preRun = [];
     Module.preRun.push(runWithFS);
   }
-  
+
   Love(Module);
 }
-

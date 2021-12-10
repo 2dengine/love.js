@@ -3,10 +3,11 @@ var interactive = document.getElementById("interactive");
 var canvas = document.getElementById("canvas");
 var overlay = document.getElementById("overlay");
 var fullscreen = document.getElementById("fullscreen");
+var modal = document.getElementById("modal");
 
 class Player {
   constructor() {
-    this.loaded = false;
+    this.state = 'pending';
     this.full = document.isFullscreen;
   }
   toggle() {
@@ -32,15 +33,24 @@ class Player {
     this.full = !this.full;
   }
   load(file) {
+    this.state = 'loading';
+    modal.classList.add("loading");
     LoadModule(file);
     interactive.focus();
   }
   error(msg) {
     console.log(msg);
+    if (this.state != 'failed') {
+      this.state = 'failed';
+      modal.classList.add("error");
+      overlay.style.display = "block";
+    }
   }
   finished() {
-    this.loaded = true;
-    overlay.style.display = "none";
+    if (this.state != 'failed') {
+      this.state = 'playing';
+      overlay.style.display = "none";
+    }
   }
 }
 
@@ -67,25 +77,30 @@ function setCookie(name, value, seconds) {
 }
 
 function consentDialog() {
-  if (!confirm("This games needs to store data on your machine"))
+  if (player.state != 'pending')
     return;
+  if (getCookie('cookie_consent') != 'true')
+    if (!confirm("Allow access to local data storage?"))
+      return;
   setCookie('cookie_consent', true);
   player.load(params.get("g") || 'nogame.love');
 }
 
 player = new Player();
 
+window.alert = player.error.bind(player);
 window.onerror = player.error.bind(player);
 window.onload = window.focus.bind(window);
 window.onclick = function() {
   window.focus();
-  if (getCookie('cookie_consent') != 'true')
-    consentDialog();
+  consentDialog();
 };
 window.addEventListener("keydown", function(e) {
   const prevent = [32, 37, 38, 39, 40, 13];
   if (prevent.indexOf(e.keyCode) > -1)
     e.preventDefault();
+  if (e.keyCode != 27)
+    consentDialog();
 }, false);
 
 // fetch arguments from url
@@ -101,7 +116,4 @@ Module.loadingComplete = player.finished.bind(player);
 if (parseInt(params.get("f")) == 1)
   fullscreen.style.display = "block";
 
-if (getCookie('cookie_consent') == 'true')
-  player.load(params.get("g") || 'nogame.love');
-else
-  consentDialog();
+consentDialog();
