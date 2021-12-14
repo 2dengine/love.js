@@ -32,10 +32,11 @@ class Player {
     }
     this.full = !this.full;
   }
-  load(file) {
+  load(file, arg) {
+    console.info(file, arg);
     this.state = 'loading';
     modal.classList.add("loading");
-    LoadModule(file);
+    LoadModule(file, arg);
     interactive.focus();
   }
   error(msg) {
@@ -85,7 +86,7 @@ function consentDialog() {
     if (!confirm("Allow access to local data storage?"))
       return;
   setCookie('cookie_consent', true);
-  player.load(params.get("g") || 'nogame.love');
+  player.load(params.get("g") || 'nogame.love', arg);
 }
 
 player = new Player();
@@ -111,6 +112,18 @@ var params = url.searchParams;
 let mem = params.get("m");
 if (mem && parseInt(mem))
   Module.INITIAL_MEMORY = parseInt(mem)*1e+6;
+var arg = params.get("arg");
+if (arg) {
+  try {
+    arg = JSON.parse(arg);
+    if (!Array.isArray(arg))
+      arg = [arg];
+  } catch(error) {
+    arg = null;
+    console.log(error);
+  }
+}
+
 Module.canvas = canvas;
 Module.printErr = player.error.bind(player);
 Module.loadingComplete = player.finished.bind(player);

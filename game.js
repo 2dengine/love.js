@@ -6,7 +6,7 @@ if (typeof Module === 'undefined')
 Module.MAX_MEMORY = (navigator.deviceMemory || 1)*1e+9;
 Module.INITIAL_MEMORY = Math.floor(Module.MAX_MEMORY/6);
 
-var LoadModule = function(uri) {
+var LoadModule = function(uri, arg) {
   let pkg = uri.substring(uri.lastIndexOf('/') + 1);
   
   var runWithFS = function() {
@@ -93,9 +93,7 @@ var LoadModule = function(uri) {
     let indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
     openDatabase(indexedDB, function(db) {
       fetchCachedPackage(db, pkg, function(result) {
-        console.info('loading ' + pkg);
         if (!result || !processPackageData(result)) {
-          console.info('fetching ' + uri);
           fetchRemotePackage(pkg, function(data) {
             cacheRemotePackage(db, pkg, data);
             processPackageData(data);
@@ -105,8 +103,11 @@ var LoadModule = function(uri) {
     });
   }
   
-  Module.arguments = [pkg];
   Module.INITIAL_MEMORY = Math.min(Module.INITIAL_MEMORY, Module.MAX_MEMORY);
+  Module.arguments = [pkg];
+  if (arg)
+    for (let i = 0; i < arg.length; i++)
+      Module.arguments.push(String(arg[i]));
 
   if (Module.calledRun) {
     runWithFS();
