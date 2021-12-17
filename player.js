@@ -131,4 +131,15 @@ Module.loadingComplete = player.finished.bind(player);
 if (parseInt(params.get("f")) == 1)
   fullscreen.style.display = "block";
 
-consentDialog();
+let ver = "release";
+if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+  ver = "compat";
+  console.info("compatibility mode");
+}
+
+var s = document.createElement("script");
+s.type = "text/javascript";
+s.src = ver+"/love.js";
+s.async = true;
+s.onload = consentDialog;
+document.body.appendChild(s);
