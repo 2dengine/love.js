@@ -7,7 +7,7 @@ var modal = document.getElementById("modal");
 
 class Player {
   constructor() {
-    this.state = 'pending';
+    this.state = "pending";
     this.full = document.isFullscreen;
   }
   toggle() {
@@ -34,37 +34,37 @@ class Player {
   }
   load(file, arg) {
     console.info(file, arg);
-    this.state = 'loading';
+    this.state = "loading";
     modal.classList.add("loading");
     LoadModule(file, arg);
     interactive.focus();
   }
   error(msg) {
     console.log(msg);
-    if (this.state != 'failed') {
-      if (this.state != 'playing') {
+    if (this.state != "failed") {
+      if (this.state != "playing") {
         modal.classList.add("error");
         overlay.style.display = "block";
       }
-      this.state = 'failed';
+      this.state = "failed";
     }
   }
   finished() {
-    if (this.state != 'failed') {
-      this.state = 'playing';
+    //if (this.state != "failed") {
+      this.state = "playing";
       overlay.style.display = "none";
-    }
+    //}
   }
 }
 
 // cookie consent
 function getCookie(name) {
-  name += '=';
+  name += "=";
   let decode = decodeURIComponent(document.cookie);
-  let ca = decode.split(';');
+  let ca = decode.split(";");
   for (let i = 0; i < ca.length; i++) {
     let c = ca[i];
-    while (c.charAt(0) == ' ')
+    while (c.charAt(0) == " ")
       c = c.substring(1);
     if (c.indexOf(name) == 0)
       return c.substring(name.length, c.length);
@@ -75,18 +75,18 @@ function setCookie(name, value, seconds) {
     seconds = 60*60*24*365*10;
   const d = new Date();
   d.setTime(d.getTime() + (seconds*1000));
-  let expires = 'expires='+d.toUTCString();
-  document.cookie = name+'='+value+';'+expires+';path=/';
+  let expires = "expires="+d.toUTCString();
+  document.cookie = name+"="+value+";"+expires+";path=/";
 }
 
 function consentDialog() {
-  if (player.state != 'pending')
+  if (player.state != "pending")
     return;
-  if (getCookie('cookie_consent') != 'true')
+  if (getCookie("cookie_consent") != "true")
     if (!confirm("Allow access to local data storage?"))
       return;
-  setCookie('cookie_consent', true);
-  player.load(params.get("g") || 'nogame.love', arg);
+  setCookie("cookie_consent", true);
+  player.load(params.get("g") || "nogame.love", arg);
 }
 
 player = new Player();
@@ -98,13 +98,14 @@ window.onclick = function() {
   window.focus();
   consentDialog();
 };
+const prevent = [37, 38, 39, 40, 13];
 window.addEventListener("keydown", function(e) {
-  const prevent = [32, 37, 38, 39, 40, 13];
   if (prevent.indexOf(e.keyCode) > -1)
     e.preventDefault();
   if (e.keyCode != 27)
     consentDialog();
 }, false);
+
 
 // fetch arguments from url
 var url = new URL(window.location.href);
