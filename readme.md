@@ -1,5 +1,5 @@
 # love.js
-The standalone version of the love.js player allows you to run Love2D game on the web.
+The standalone version of the love.js player allows you to run Love2D games on the web.
 This player is based on the previous work of Davidobot and Tanner Rogalsky using Emscripten.
 The standalone version is maintained and developed by: https://2dengine.com
 
