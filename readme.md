@@ -10,7 +10,7 @@ The included .htaccess file sets these headers automatically on most Apache serv
 If you are running any other kind of web server (NGINX, OpenResty, Windows Server, etc) you will need to to configure the correct headers on your own (see "Cross-Origin-Opener-Policy" and "Cross-Origin-Embedder-Policy").
 
 ## Usage
-We use the following URL parameter "?g=" to choose which game to run:
+Use the "?g=" parameter to choose which game to run:
 ```
 example.com/player/?g=mygame.love
 ```
@@ -18,7 +18,7 @@ You can pass an array of arguments to your game using the "&arg=" parameter:
 ```
 example.com/player/?g=mygame.love&arg=['--first','--second']
 ```
-Some games may fail to run on systems with limited system memory.
+Some games may fail to run or crash on systems with limited memory.
 
 ## Cookie consent
 To skip the cookie consent dialog you need to call the following function:
@@ -27,8 +27,14 @@ window.runLove();
 ```
 
 ## Credits
-https://github.com/Davidobot/love.js (MIT)
+Front-end by 2dengine LLC (MIT License)
+https://github.com/2dengine/love.js
 
-https://github.com/TannerRogalsky/love.js/ (MIT)
+Emscripten port by David Khachaturov (MIT License)
+https://github.com/TannerRogalsky/love.js/
 
-https://projects.lukehaas.me/css-loaders/ (MIT)
+Original port by Tanner Rogalsky (MIT License)
+https://github.com/Davidobot/love.js
+
+CSS spinner by Luke Haas (MIT License)
+https://projects.lukehaas.me/css-loaders/
