@@ -1,8 +1,6 @@
 export default async (canvas, uri, arg) => {
   return new Promise((resolve, reject) => {
-    let Module = {}; //window.Module;
-    //if (typeof Module === 'undefined')
-      //Module = eval('(function() { try { return Module || {} } catch(e) { return {} } })()');
+    let Module = {};
 
     const mem = (navigator.deviceMemory || 1)*1e+9;
     Module.INITIAL_MEMORY = Math.floor(mem/6);
@@ -13,8 +11,6 @@ export default async (canvas, uri, arg) => {
     if (arg && Array.isArray(arg))
       for (let i = 0; i < arg.length; i++)
         Module.arguments.push(String(arg[i]));
-      
-    //let result = null;
 
     const runWithFS = async () => {
       Module.addRunDependency('fp '+pkg);
@@ -82,9 +78,6 @@ export default async (canvas, uri, arg) => {
       Module['HEAPU8'].set(byteArray, ptr);
       Module.FS_createDataFile(pkg, null, byteArray, true, true, true);
       Module.removeRunDependency('fp '+pkg);
-      //if (Module.loadingComplete)
-        //Module.loadingComplete();
-      //result = 'loaded';
       resolve(Module);
       Module.finishedDataFileDownloads ++;
     }
