@@ -5,21 +5,27 @@
   if (!canvas) {
     canvas = document.createElement('canvas');
     canvas.id = 'canvas';
-    script.parentNode.insertBefore(canvas, script);
+    if (script)
+      script.parentNode.insertBefore(canvas, script);
+    else
+      document.body.appendChild(canvas);
   }
   canvas.oncontextmenu = () => event.preventDefault();
   let spinner = document.getElementById('spinner');
   if (!spinner) {
     spinner = document.createElement('div');
     spinner.id = 'spinner';
-    script.parentNode.after(spinner, script);
+    if (script)
+      script.parentNode.after(spinner, script);
+    else
+      document.body.appendChild(spinner);
   }
   spinner.className = 'pending';
   
   // Error handling
   let state = 'pending';
   // Parse arguments from the URL address
-  let url = new URL(script.src);
+  let url = new URL(script?.src || import.meta.url);
   if (!url.searchParams.has('g'))
     url = new URL(window.location.href);
   let arg = url.searchParams.get('arg');
