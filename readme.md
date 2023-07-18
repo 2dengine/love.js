@@ -35,7 +35,7 @@ There are some audio compatibility issues especially when streaming music.
 The love.js player shows a cookie consent dialog in accordance with GDPR 2016/679.
 If you have already obtained consent from the data subject you can skip the cookie consent dialog as follows:
 ```
-document.cookie = `lovejs=true;expires=2145916800;path=/`;
+document.cookie = `lovejs=true;expires=Fri, 31 Dec 9999 23:59:59 GMT;path=/`;
 ```
 
 ## Credits
