@@ -3,36 +3,27 @@
   const script = document.currentScript;
   let canvas = document.getElementById('canvas');
   if (!canvas) {
-    canvas = document.createElement('canvas');
+    canvas = document.createElement('CANVAS');
     canvas.id = 'canvas';
-    if (script)
-      script.parentNode.insertBefore(canvas, script);
-    else
-      document.body.appendChild(canvas);
+    script.parentNode.insertBefore(canvas, script);
   }
   canvas.oncontextmenu = () => event.preventDefault();
   let spinner = document.getElementById('spinner');
   if (!spinner) {
-    spinner = document.createElement('div');
+    spinner = document.createElement('DIV');
     spinner.id = 'spinner';
-    if (script)
-      script.parentNode.after(spinner, script);
-    else
-      document.body.appendChild(spinner);
+    script.parentNode.after(spinner, script);
   }
   spinner.className = 'pending';
   
-  // Error handling
-  let state = 'pending';
   // Parse arguments from the URL address
-  let url = new URL(script?.src || import.meta.url);
+  let url = new URL(script.src);
   if (!url.searchParams.has('g'))
     url = new URL(window.location.href);
   let arg = url.searchParams.get('arg');
   let uri = url.searchParams.get('g');
   if (uri == null)
     uri = 'nogame.love';
-
   if (arg) {
     try {
       arg = JSON.parse(arg);
@@ -50,13 +41,13 @@
 
       // Runs the requested package
       window.runLove = () => {
-        state = 'loading';
+        //state = 'loading';
         spinner.className = 'loading';
         load(canvas, uri, arg)
           .then((res) => {
             canvas.focus();
+            //state = 'playing';
             spinner.className = '';
-            state = 'playing';
           })
           .catch((err) => {
             console.log(err);
@@ -71,10 +62,11 @@
       // Handling errors
       window.alert = window.onerror = (msg) => {
         console.log(msg);
-        if (state != 'failed') {
+        if (spinner.className != 'error') {
+        //if (state != 'failed') {
           canvas.style.display = 'none';
+          //state = 'failed';
           spinner.className = 'error';
-          state = 'failed';
         }
       };
 
@@ -84,7 +76,8 @@
       // Handle touch and mouse input
       window.onclick = (e) => {
         window.focus();
-        if (state == 'pending')
+        //if (state == 'pending')
+        if (spinner.className == 'pending')
           window.consentDialog();
       };
 
@@ -93,7 +86,8 @@
       window.onkeydown = (e) => {
         if (prevent.indexOf(e.keyCode) > -1)
           e.preventDefault();
-        if (e.keyCode != 27 && state == 'pending')
+        //if (e.keyCode != 27 && state == 'pending')
+        if (e.keyCode != 27 && spinner.className == 'pending')
           window.consentDialog();
       }
 

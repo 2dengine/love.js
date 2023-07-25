@@ -37,7 +37,8 @@ export default async (canvas, uri, arg) => {
       let data = await new Promise((resolve, reject) => {
         const trans = db.transaction(['PACKAGES'], 'readonly');
         const meta = trans.objectStore('PACKAGES');
-        const getRequest = meta.get('package/'+pkg);
+        //const getRequest = meta.get('package/'+pkg);
+        const getRequest = meta.get(uri);
         getRequest.onerror = (error) => {
           reject(error);
         };
@@ -53,12 +54,12 @@ export default async (canvas, uri, arg) => {
         if (!res.ok)
           return reject('Could not fetch the package');
         data = await res.arrayBuffer();
-
         // Cache remote package for subsequent requests
         await new Promise((resolve, reject) => {
           const trans = db.transaction(['PACKAGES'], 'readwrite');
           const packages = trans.objectStore('PACKAGES');
-          const req = packages.put(data, 'package/'+pkg);
+          //const req = packages.put(data, 'package/'+pkg);
+          const req = packages.put(data, uri);
           req.onerror = (error) => {
             reject(error);
           };
