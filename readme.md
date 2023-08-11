@@ -43,10 +43,10 @@ Front-end by 2dengine LLC (MIT License)
 https://github.com/2dengine/love.js
 
 Emscripten port by David Khachaturov (MIT License)
-https://github.com/TannerRogalsky/love.js/
+https://github.com/Davidobot/love.js
 
 Original port by Tanner Rogalsky (MIT License)
-https://github.com/Davidobot/love.js
+https://github.com/TannerRogalsky/love.js/
 
 CSS spinner by Luke Haas (MIT License)
 https://projects.lukehaas.me/css-loaders/
