@@ -31,11 +31,12 @@ Certain games may fail to run or crash on systems with limited memory.
 love.filesystem may crash if you try to access non-existent files.
 There are some audio compatibility issues especially when streaming music.
 
-## Cookie consent
-The love.js player shows a cookie consent dialog in accordance with GDPR 2016/679.
+## GDPR 2016/679
+love.js uses indexedDB to cache game packages and store data on the user's device.
+love.js shows a consent dialog in accordance with GDPR 2016/679.
 If you have already obtained consent from the data subject you can skip the cookie consent dialog as follows:
 ```
-document.cookie = `lovejs=true;expires=Fri, 31 Dec 9999 23:59:59 GMT;path=/`;
+indexedDB.open('EM_PRELOAD_CACHE', 1);
 ```
 
 ## Credits
@@ -43,10 +44,10 @@ Front-end by 2dengine LLC (MIT License)
 https://github.com/2dengine/love.js
 
 Emscripten port by David Khachaturov (MIT License)
-https://github.com/Davidobot/love.js
+https://github.com/TannerRogalsky/love.js/
 
 Original port by Tanner Rogalsky (MIT License)
-https://github.com/TannerRogalsky/love.js/
+https://github.com/Davidobot/love.js
 
 CSS spinner by Luke Haas (MIT License)
 https://projects.lukehaas.me/css-loaders/

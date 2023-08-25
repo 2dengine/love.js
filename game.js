@@ -17,7 +17,7 @@ export default async (canvas, uri, arg) => {
 
       // Open the local database used to cache packages
       const db = await new Promise((resolve, reject) => {
-        const indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
+        //const indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
         const req = indexedDB.open('EM_PRELOAD_CACHE', 1);
         req.onupgradeneeded = (event) => {
           const db = event.target.result;

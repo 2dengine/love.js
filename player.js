@@ -93,26 +93,15 @@
 
       // GDPR consent dialog
       window.consentDialog = () => {
-        let value = null;
-        const decode = decodeURIComponent(document.cookie);
-        const ca = decode.split(';');
-        for (let i = 0; i < ca.length; i++) {
-          let c = ca[i];
-          while (c.charAt(0) == ' ')
-            c = c.substring(1);
-          if (c.indexOf('lovejs=') == 0)
-            value = c.substring(('lovejs=').length, c.length);
-        }
-        if (value != 'true') {
-          if (!confirm('Allow access to local data storage?'))
+        indexedDB.databases().then((r) => {
+          let exists = false;
+          for (let i = 0; i < r.length; i++)
+            if (r[i].name == 'EM_PRELOAD_CACHE')
+              exists = true;
+          if (!exists && !confirm('Allow access to local data storage?'))
             return;
-          const d = new Date();
-          d.setTime(d.getTime() + (1000*60*60*24*365*10));
-          const stamp = d.toUTCString();
-          document.cookie = `lovejs=true;expires=${stamp};path=/`;
-        }
-        
-        window.runLove();
+          window.runLove();
+        });
       }
       
       window.consentDialog();
