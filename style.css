@@ -13,14 +13,15 @@ body, #canvas {
 }
 
 #spinner {
+  box-sizing: border-box;
   font-size: 10px;
   left: 50%;
   top: 50%;
-  margin-left: -5em;
-  margin-top: -5em;
+  margin-left: -4rem;
+  margin-top: -4rem;
   position: absolute;
-  text-indent: -9999em;
-  border: 1.1em solid rgba(255, 255, 255, 0.2);
+  text-indent: -9999rem;
+  border: 1.1rem solid rgba(255, 255, 255, 0.2);
   display: none;
   z-index: 100;
 }
@@ -28,8 +29,8 @@ body, #canvas {
 #spinner,
 #spinner:after {
   border-radius: 50%;
-  width: 10em;
-  height: 10em;
+  width: 8rem;
+  height: 8rem;
 }
 
 #spinner.pending {
@@ -51,7 +52,7 @@ body, #canvas {
 }
   
 #spinner.loading {
-  border-left: 1.1em solid #fff;
+  border-left: 1.1rem solid #fff;
   -webkit-transform: translateZ(0);
   -ms-transform: translateZ(0);
   transform: translateZ(0);
@@ -71,7 +72,7 @@ body, #canvas {
 }
 
 #spinner.error {
-  border: 1.1em solid #f00;
+  border: 1.1rem solid #f00;
   color: #f00;
   content: "\00d7";
   transform: translateZ(0);

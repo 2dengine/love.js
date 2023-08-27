@@ -5,8 +5,10 @@ export default async (canvas, uri, arg) => {
     const mem = (navigator.deviceMemory || 1)*1e+9;
     Module.INITIAL_MEMORY = Math.floor(mem/6);
     Module.canvas = canvas;
+    
+    Module.printErr = window.onerror;
 
-    const pkg = uri.substring(uri.lastIndexOf('/') + 1);
+    const pkg = 'game.love'; //uri.substring(uri.lastIndexOf('/') + 1);
     Module.arguments = [pkg];
     if (arg && Array.isArray(arg))
       for (let i = 0; i < arg.length; i++)

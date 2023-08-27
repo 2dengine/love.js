@@ -1,4 +1,4 @@
-{
+{  
   // DOM
   const script = document.currentScript;
   let canvas = document.getElementById('canvas');
@@ -22,6 +22,7 @@
     url = new URL(window.location.href);
   let arg = url.searchParams.get('arg');
   let uri = url.searchParams.get('g');
+
   if (uri == null)
     uri = 'nogame.love';
   if (arg) {
@@ -62,7 +63,8 @@
       // Handling errors
       window.alert = window.onerror = (msg) => {
         console.log(msg);
-        if (spinner.className != 'error') {
+        //if (spinner.className != 'error') {
+        if (spinner.className != '') {
         //if (state != 'failed') {
           canvas.style.display = 'none';
           //state = 'failed';
@@ -72,7 +74,7 @@
 
       // Focus when running inside an iFrame
       window.onload = window.focus.bind(window);
-      
+
       // Handle touch and mouse input
       window.onclick = (e) => {
         window.focus();
@@ -90,6 +92,13 @@
         if (e.keyCode != 27 && spinner.className == 'pending')
           window.consentDialog();
       }
+      
+      // Fixes a persistency bug when using the back and forward buttons
+      window.onpageshow = (event) => {
+        canvas.style.display = 'none';
+        if (event.persisted)
+          window.location.reload();
+      };
 
       // GDPR consent dialog
       window.consentDialog = () => {

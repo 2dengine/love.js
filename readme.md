@@ -31,12 +31,11 @@ Certain games may fail to run or crash on systems with limited memory.
 love.filesystem may crash if you try to access non-existent files.
 There are some audio compatibility issues especially when streaming music.
 
-## GDPR 2016/679
-love.js uses indexedDB to cache game packages and store data on the user's device.
-love.js shows a consent dialog in accordance with GDPR 2016/679.
+## Cookie consent
+The love.js player shows a cookie consent dialog in accordance with GDPR 2016/679.
 If you have already obtained consent from the data subject you can skip the cookie consent dialog as follows:
 ```
-indexedDB.open('EM_PRELOAD_CACHE', 1);
+document.cookie = `lovejs=true;expires=Fri, 31 Dec 9999 23:59:59 GMT;path=/`;
 ```
 
 ## Credits
