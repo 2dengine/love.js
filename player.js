@@ -30,7 +30,7 @@
       arg = JSON.parse(arg);
       if (!Array.isArray(arg))
         arg = [arg];
-    } catch(error) {
+    } catch (error) {
       arg = null;
       console.log(error);
     }
@@ -93,7 +93,7 @@
           window.consentDialog();
       }
       
-      // Fixes a persistency bug when using the back and forward buttons
+      // Fixes a persistence bug when using the back and forward buttons
       window.onpageshow = (event) => {
         canvas.style.display = 'none';
         if (event.persisted)
@@ -102,15 +102,19 @@
 
       // GDPR consent dialog
       window.consentDialog = () => {
-        indexedDB.databases().then((r) => {
-          let exists = false;
-          for (let i = 0; i < r.length; i++)
-            if (r[i].name == 'EM_PRELOAD_CACHE')
-              exists = true;
-          if (!exists && !confirm('Allow access to local data storage?'))
-            return;
-          window.runLove();
-        });
+        indexedDB.databases()
+          .then((r) => {
+            let exists = false;
+            for (let i = 0; i < r.length; i++)
+              if (r[i].name == 'EM_PRELOAD_CACHE')
+                exists = true;
+            if (!exists && !confirm('Allow access to local data storage?'))
+              return;
+            window.runLove();
+          })
+          .catch ((err) => {
+            alert('Your browser does not allow local data storage');
+          });
       }
       
       window.consentDialog();
