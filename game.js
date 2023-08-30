@@ -48,14 +48,20 @@ export default async (canvas, uri, arg) => {
           resolve(event.target.result);
         };
       });
-    
+
       // Fetch the package remotely, if we do not have it in local storage
-      if (!data || !(data instanceof ArrayBuffer)) {
-        console.log(uri);
+      if (!data || !(data instanceof Uint8Array)) {
+        console.log('fetching:'+uri);
         const res = await fetch(uri);
         if (!res.ok)
-          return reject('Could not fetch the package');
+          return reject('Could not fetch the love package');
         data = await res.arrayBuffer();
+        // Check if the header is a valid ZIP archive
+        data = new Uint8Array(data);
+        const head = [80,75,3,4];
+        for (let i = 0; i < head.length; i++)
+          if (data[i] != head[i])
+            return reject('The fetched resource is not a valid love package');
         // Cache remote package for subsequent requests
         await new Promise((resolve, reject) => {
           const trans = db.transaction(['PACKAGES'], 'readwrite');
@@ -70,16 +76,15 @@ export default async (canvas, uri, arg) => {
           };
         });
       };
-      
-      let byteArray = new Uint8Array(data);
+
       // Copy the entire loaded file into a spot in the heap.
       // Files will refer to slices in the heap, but cannot be freed
       // (we may be allocating before malloc is ready, during startup).
       if (Module['SPLIT_MEMORY'])
         Module.printErr('warning: you should run the file packager with --no-heap-copy when SPLIT_MEMORY is used, otherwise copying into the heap may fail due to the splitting');
-      let ptr = Module.getMemory(byteArray.length);
-      Module['HEAPU8'].set(byteArray, ptr);
-      Module.FS_createDataFile(pkg, null, byteArray, true, true, true);
+      const ptr = Module.getMemory(data.length);
+      Module['HEAPU8'].set(data, ptr);
+      Module.FS_createDataFile(pkg, null, data, true, true, true);
       Module.removeRunDependency('fp '+pkg);
       resolve(Module);
       Module.finishedDataFileDownloads ++;
