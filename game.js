@@ -1,22 +1,6 @@
 export default async (canvas, uri, arg) => {
-  return new Promise((resolve, reject) => {
-    let Module = {};
-
-    const mem = (navigator.deviceMemory || 1)*1e+9;
-    Module.INITIAL_MEMORY = Math.floor(mem/6);
-    Module.canvas = canvas;
-    
-    Module.printErr = window.onerror;
-
-    const pkg = 'game.love'; //uri.substring(uri.lastIndexOf('/') + 1);
-    Module.arguments = [pkg];
-    if (arg && Array.isArray(arg))
-      for (let i = 0; i < arg.length; i++)
-        Module.arguments.push(String(arg[i]));
-
-    const runWithFS = async () => {
-      Module.addRunDependency('fp '+pkg);
-
+  return new Promise(async (resolve, reject) => {      
+    const fetchPkg = async () => {
       // Open the local database used to cache packages
       const db = await new Promise((resolve, reject) => {
         //const indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
@@ -76,12 +60,35 @@ export default async (canvas, uri, arg) => {
           };
         });
       };
+      return data;
+    }
+    
+    const data = await fetchPkg();
+    
+    let Module = {};
+
+    const mem = (navigator.deviceMemory || 1)*1e+9;
+    Module.INITIAL_MEMORY = Math.min(4*data.length, mem);
+    Module.canvas = canvas;
+
+    Module.printErr = window.onerror;
+
+    const pkg = 'game.love'; //uri.substring(uri.lastIndexOf('/') + 1);
+    Module.arguments = [pkg];
+    if (arg && Array.isArray(arg))
+      for (let i = 0; i < arg.length; i++)
+        Module.arguments.push(String(arg[i]));
+
+    const runWithFS = async () => {
+      Module.addRunDependency('fp '+pkg);
 
       // Copy the entire loaded file into a spot in the heap.
       // Files will refer to slices in the heap, but cannot be freed
       // (we may be allocating before malloc is ready, during startup).
       if (Module['SPLIT_MEMORY'])
         Module.printErr('warning: you should run the file packager with --no-heap-copy when SPLIT_MEMORY is used, otherwise copying into the heap may fail due to the splitting');
+
+      //const data = await fetchPkg();
       const ptr = Module.getMemory(data.length);
       Module['HEAPU8'].set(data, ptr);
       Module.FS_createDataFile(pkg, null, data, true, true, true);
