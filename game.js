@@ -68,7 +68,7 @@ export default async (canvas, uri, arg) => {
     let Module = {};
 
     const mem = (navigator.deviceMemory || 1)*1e+9;
-    Module.INITIAL_MEMORY = Math.min(4*data.length, mem);
+    Module.INITIAL_MEMORY = Math.min(4*data.length + 2e+7, mem);
     Module.canvas = canvas;
 
     Module.printErr = window.onerror;
