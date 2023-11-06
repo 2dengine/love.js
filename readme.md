@@ -7,7 +7,9 @@ The standalone version is maintained and developed by: https://2dengine.com
 Copy all of the love.js files on you server, preferably in a separate directory.
 To run or embed the love.js player, you need to set the correct HTTP headers on your server.
 The included .htaccess file sets these headers automatically on most Apache servers.
+One option is to enable the AllowOverride directive including "mod_headers".
 If you are running any other kind of web server (NGINX, OpenResty, Windows Server, etc) you will need to to configure the correct headers on your own (see "Cross-Origin-Opener-Policy" and "Cross-Origin-Embedder-Policy").
+
 
 ## Usage
 The player.js script creates an HTML canvas element and renders Love2D inside that canvas.

@@ -64,16 +64,15 @@ export default async (canvas, uri, arg) => {
     }
     
     const data = await fetchPkg();
+    const pkg = 'game.love'; //uri.substring(uri.lastIndexOf('/') + 1);
     
     let Module = {};
 
     const mem = (navigator.deviceMemory || 1)*1e+9;
     Module.INITIAL_MEMORY = Math.min(4*data.length + 2e+7, mem);
     Module.canvas = canvas;
-
     Module.printErr = window.onerror;
-
-    const pkg = 'game.love'; //uri.substring(uri.lastIndexOf('/') + 1);
+    
     Module.arguments = [pkg];
     if (arg && Array.isArray(arg))
       for (let i = 0; i < arg.length; i++)

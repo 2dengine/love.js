@@ -46,6 +46,7 @@
         spinner.className = 'loading';
         load(canvas, uri, arg)
           .then((res) => {
+            canvas.style.display = 'block';
             canvas.focus();
             //state = 'playing';
             spinner.className = '';
@@ -63,11 +64,8 @@
       // Handling errors
       window.alert = window.onerror = (msg) => {
         console.log(msg);
-        //if (spinner.className != 'error') {
         if (spinner.className != '') {
-        //if (state != 'failed') {
           canvas.style.display = 'none';
-          //state = 'failed';
           spinner.className = 'error';
         }
       };
@@ -99,22 +97,32 @@
         if (event.persisted)
           window.location.reload();
       };
+      
+      if (!window.SharedArray) {
+        alert('The Cross-Origin Policy is not configured properly');
+        return;
+      }
 
       // GDPR consent dialog
       window.consentDialog = () => {
-        indexedDB.databases()
-          .then((r) => {
-            let exists = false;
-            for (let i = 0; i < r.length; i++)
-              if (r[i].name == 'EM_PRELOAD_CACHE')
-                exists = true;
-            if (!exists && !confirm('Allow access to local data storage?'))
+        let exists = true;
+        let req = window.indexedDB.open('EM_PRELOAD_CACHE');
+        req.onsuccess = () => {
+          req.result.close();
+          if (!exists) {
+            indexedDB.deleteDatabase('EM_PRELOAD_CACHE');
+            if (!confirm('Allow access to local data storage?'))
               return;
-            window.runLove();
-          })
-          .catch ((err) => {
-            alert('Your browser does not allow local data storage');
-          });
+          }
+          window.runLove();
+        }
+        req.onupgradeneeded = () => {
+          exists = false;
+        }
+        req.onerror = (event) => {
+          console.log(event.target.error);
+          alert('Local data storage is unavailable');
+        }
       }
       
       window.consentDialog();
