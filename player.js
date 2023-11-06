@@ -98,7 +98,7 @@
           window.location.reload();
       };
       
-      if (!window.SharedArray) {
+      if (!window.SharedArrayBuffer) {
         alert('The Cross-Origin Policy is not configured properly');
         return;
       }
