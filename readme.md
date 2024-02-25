@@ -1,5 +1,5 @@
 # love.js
-The standalone love.js player allows you to run Love2D games on the web.
+The standalone love.js player allows you to run LÖVE apps and games on the web.
 love.js is based on the previous work by Davidobot and Tanner Rogalsky using Emscripten.
 This standalone version is developed by 2dengine LLC and runs .love files without node.js.
 https://2dengine.com
@@ -17,7 +17,7 @@ If it doesn't work you may need to enable the "AllowOverride" directive and "mod
 If you are running any other kind of web server (NGINX, OpenResty, Windows Server, etc) you will need to configure the correct headers on your own.
 
 ## Usage
-The player.js script creates an HTML canvas element and renders Love2D inside that canvas.
+The player.js script creates an HTML canvas element and renders LÖVE inside that canvas.
 You have to use "iframes" if you want to embed multiple instances of love.js on the same page.
 The easiest way is to embed the player as follows:
 ```
@@ -25,7 +25,7 @@ The easiest way is to embed the player as follows:
 ```
 Use the "?g=" parameter to choose which game to run.
 
-Additionally, you can pass an array of arguments to your Love2D app using the "&arg=" parameter:
+Additionally, you can pass an array of arguments to your LÖVE app using the "&arg=" parameter:
 ```
 example.com/player/?g=mygame.love&arg=['--first','--second']
 ```
