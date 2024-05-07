@@ -6,10 +6,10 @@ export default async (canvas, uri, arg, compat) => {
         //const indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
         const req = indexedDB.open('EM_PRELOAD_CACHE', 1);
         req.onupgradeneeded = (event) => {
-          const db = event.target.result;
-          if (db.objectStoreNames.contains('PACKAGES'))
-            db.deleteObjectStore('PACKAGES');
-          db.createObjectStore('PACKAGES');
+          const targ = event.target.result;
+          if (targ.objectStoreNames.contains('PACKAGES'))
+            targ.deleteObjectStore('PACKAGES');
+          targ.createObjectStore('PACKAGES');
         };
         req.onerror = (error) => {
           reject(error);
@@ -18,7 +18,22 @@ export default async (canvas, uri, arg, compat) => {
           resolve(event.target.result);
         };
       });
-      
+
+      // Check if the database is malformed
+      if (!db.objectStoreNames.contains('PACKAGES')) {
+        db.close();
+        await new Promise((resolve, reject) => {
+          const req = indexedDB.deleteDatabase('EM_PRELOAD_CACHE');
+          req.onerror = (error) => {
+            reject(error);
+          }
+          req.onsuccess = (event) => {
+            resolve();
+          }
+        });
+        return await fetchPkg();
+      }
+        
       // Check if there's a cached package, and if so whether it's the latest available
       let data = await new Promise((resolve, reject) => {
         const trans = db.transaction(['PACKAGES'], 'readonly');

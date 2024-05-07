@@ -107,9 +107,9 @@
       // GDPR consent dialog
       window.consentDialog = () => {
         let exists = true;
-        let req = window.indexedDB.open('EM_PRELOAD_CACHE');
-        req.onsuccess = () => {
-          req.result.close();
+        const req = window.indexedDB.open('EM_PRELOAD_CACHE');
+        req.onsuccess = (event) => {
+          event.target.result.close();
           if (!exists) {
             indexedDB.deleteDatabase('EM_PRELOAD_CACHE');
             if (!confirm('Allow access to local data storage?'))
