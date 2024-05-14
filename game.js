@@ -79,8 +79,10 @@ export default async (canvas, uri, arg, compat) => {
     }
     
     const data = await fetchPkg();
-    const pkg = 'game.love'; //uri.substring(uri.lastIndexOf('/') + 1);
+    if (!data)
+      return reject('Could not parse the package contents');
     
+    const pkg = 'game.love'; //uri.substring(uri.lastIndexOf('/') + 1);
     let Module = {};
 
     const mem = (navigator.deviceMemory || 1)*1e+9;
