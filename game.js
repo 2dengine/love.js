@@ -1,4 +1,4 @@
-export default async (canvas, uri, arg, compat) => {
+export default async (canvas, uri, arg, version, compat) => {
   return new Promise(async (resolve, reject) => {      
     const fetchPkg = async () => {
       // Open the local database used to cache packages
@@ -124,9 +124,11 @@ export default async (canvas, uri, arg, compat) => {
 
     if (window.Love === undefined) {
       // this operation initiates local storage
+      if (version == null)
+        version = '11.5';
       let s = document.createElement('script');
       s.type = 'text/javascript';
-      s.src = (compat) ? 'compat/love.js' : 'release/love.js';
+      s.src = version + ((compat) ? '/compat/love.js' : '/release/love.js');
       s.async = true;
       s.onload = () => {
         Love(Module);

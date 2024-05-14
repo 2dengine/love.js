@@ -23,6 +23,7 @@
   let arg = url.searchParams.get('arg');
   let uri = url.searchParams.get('g');
   let compat = url.searchParams.get('c');
+  let version = url.searchParams.get('v');
 
   if (uri == null)
     uri = 'nogame.love';
@@ -45,7 +46,7 @@
       window.runLove = () => {
         //state = 'loading';
         spinner.className = 'loading';
-        load(canvas, uri, arg, compat)
+        load(canvas, uri, arg, version, compat)
           .then((res) => {
             canvas.style.display = 'block';
             canvas.focus();
