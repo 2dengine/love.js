@@ -30,6 +30,11 @@ Additionally, you can pass an array of arguments to your LÖVE app using the "&a
 example.com/player/?g=mygame.love&arg=['--first','--second']
 ```
 
+You can switch between different versions (11.3, 11.4 or 11.5) of LÖVE using the "&v" parameter:
+```
+example.com/player/?g=mygame.love&v=11.3
+```
+
 ## Limitations
 love.js is still a work-in-progress and has several known bugs.
 The games run slower compared to other platforms since love.js does not take advantage of LuaJIT.
