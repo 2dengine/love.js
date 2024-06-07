@@ -2,7 +2,7 @@
 The standalone love.js player allows you to run LÖVE apps and games on the web.
 love.js is based on the previous work by Davidobot and Tanner Rogalsky using Emscripten.
 This standalone version is developed by 2dengine LLC and can run .love files directly.
-https://2dengine.com
+Please support our open source work by visiting https://2dengine.com
 
 ## Installation
 The love.js player needs to be installed on a web server (it will not work if you open the "index.html" page locally in your browser).
