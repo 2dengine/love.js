@@ -74,13 +74,10 @@
 
       // Focus when running inside an iFrame
       window.onload = window.focus.bind(window);
-/*
+      
       // Handle touch and mouse input
       window.onclick = (e) => {
         window.focus();
-        //if (state == 'pending')
-        if (spinner.className == 'pending')
-          window.consentDialog();
       };
 
       // Disable window scrolling using the arrow keys
@@ -88,11 +85,8 @@
       window.onkeydown = (e) => {
         if (prevent.indexOf(e.keyCode) > -1)
           e.preventDefault();
-        //if (e.keyCode != 27 && state == 'pending')
-        if (e.keyCode != 27 && spinner.className == 'pending')
-          window.consentDialog();
       }
-*/
+
       // Fixes a persistence bug when using the back and forward buttons
       window.onpageshow = (event) => {
         canvas.style.display = 'none';
@@ -104,31 +98,7 @@
         alert('The Cross-Origin Policy is not configured properly');
         return;
       }
-/*
-      // GDPR consent dialog
-      window.consentDialog = () => {
-        let exists = true;
-        const req = window.indexedDB.open('EM_PRELOAD_CACHE');
-        req.onsuccess = (event) => {
-          event.target.result.close();
-          if (!exists) {
-            indexedDB.deleteDatabase('EM_PRELOAD_CACHE');
-            if (!confirm('Allow access to local data storage?'))
-              return;
-          }
-          window.runLove();
-        }
-        req.onupgradeneeded = () => {
-          exists = false;
-        }
-        req.onerror = (event) => {
-          console.log(event.target.error);
-          alert('Local data storage is unavailable');
-        }
-      }
       
-      window.consentDialog();
-*/
       window.runLove();
     });
 };
