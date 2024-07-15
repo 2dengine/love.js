@@ -64,7 +64,8 @@
       }
       
       // Handling errors
-      window.alert = window.onerror = (msg) => {
+      //window.alert = window.onerror = (msg) => {
+      window.onerror = (msg) => {
         console.log(msg);
         if (spinner.className != '') {
           canvas.style.display = 'none';
@@ -95,7 +96,8 @@
       };
       
       if (!window.SharedArrayBuffer) {
-        alert('The Cross-Origin Policy is not configured properly');
+        //alert('The Cross-Origin Policy is not configured properly');
+        throw new Error('The Cross-Origin Policy is not configured properly');
         return;
       }
       
