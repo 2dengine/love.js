@@ -74,7 +74,7 @@
 
       // Focus when running inside an iFrame
       window.onload = window.focus.bind(window);
-
+/*
       // Handle touch and mouse input
       window.onclick = (e) => {
         window.focus();
@@ -92,7 +92,7 @@
         if (e.keyCode != 27 && spinner.className == 'pending')
           window.consentDialog();
       }
-      
+*/
       // Fixes a persistence bug when using the back and forward buttons
       window.onpageshow = (event) => {
         canvas.style.display = 'none';
@@ -104,7 +104,7 @@
         alert('The Cross-Origin Policy is not configured properly');
         return;
       }
-
+/*
       // GDPR consent dialog
       window.consentDialog = () => {
         let exists = true;
@@ -128,5 +128,7 @@
       }
       
       window.consentDialog();
+*/
+      window.runLove();
     });
 };
