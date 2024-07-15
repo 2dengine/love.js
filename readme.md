@@ -44,12 +44,11 @@ love.filesystem may crash if you try to access non-existent files.
 There are also some audio compatibility issues especially when streaming music.
 
 ## GDPR 2016/679
+love.js itself is fully GDPR compliant because:
+- All of the data is stored locally and remains exclusively on the user's machine
+- None of the project files include or collect personal information
+If your love.js game collects or processes personal information, you need to include the appropriate warnings yourself.
 love.js uses indexedDB to cache game packages and store data on the user's device.
-love.js shows a consent dialog in accordance with GDPR 2016/679.
-If you have already obtained consent from the data subject you can skip the cookie consent dialog as follows:
-```
-indexedDB.open('EM_PRELOAD_CACHE', 1);
-```
 
 ## Credits
 Front-end by 2dengine LLC (MIT License)
