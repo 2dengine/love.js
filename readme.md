@@ -2,7 +2,8 @@
 The standalone love.js player allows you to run LÖVE apps and games on the web.
 love.js is based on the previous work by Davidobot and Tanner Rogalsky using Emscripten.
 This standalone version is developed by 2dengine LLC and can run .love files directly.
-Please support our open source work by visiting https://2dengine.com
+
+The source code is available on [GitHub](https://github.com/2dengine/love.js) and the documentation is hosted on [2dengine.com](https://2dengine.com/doc/lovejs.html)
 
 ## Installation
 The love.js player needs to be installed on a web server (it will not work if you open the "index.html" page locally in your browser).
@@ -27,7 +28,7 @@ Use the "?g=" parameter to choose which game to run.
 
 Additionally, you can pass an array of arguments to your LÖVE app using the "&arg=" parameter:
 ```
-example.com/player/?g=mygame.love&arg=['--first','--second']
+example.com/player/?g=mygame.love&arg=["--first","--second"]
 ```
 
 You can switch between different versions (11.3, 11.4 or 11.5) of LÖVE using the "&v" parameter:
@@ -35,15 +36,55 @@ You can switch between different versions (11.3, 11.4 or 11.5) of LÖVE using th
 example.com/player/?g=mygame.love&v=11.3
 ```
 
+For development purposes, you can disable the package-caching feature using the "&n" parameter:
+```
+example.com/player/?g=mygame.love&n=1
+```
+
 ## Limitations
 love.js is still a work-in-progress and has several known bugs.
+We have developed a front-end that can be used by both English and non-English speakers and have rewritten "game.js" from scratch.
+Nevertheless, "love.js" desperately needs refactoring which will take a lot of work.
+
 The games run slower compared to other platforms since love.js does not take advantage of LuaJIT.
-Additionally, WebGL shaders work differently compared to their desktop counterparts.
 Certain games may fail to run or crash on systems with limited memory.
-love.filesystem may crash if you try to access non-existent files.
+Rendering works quite well across browsers although we have noticed font-related glitches.
+Additionally, WebGL shaders work differently compared to their desktop counterparts.
 There are also some audio compatibility issues especially when streaming music.
 
-## GDPR 2016/679
+One of the more significant issues is that love.js crashes even in cases where "pcall" is used.
+love.js may crash if you try to access non-existent files, for example:
+```
+love.filesystem.read(non_existent_filename)
+```
+A simple solution to the above-mentioned problem is to check if the file you are trying to access already exists:
+```
+if love.filesystem.getInfo(filename) then
+  love.filesystem.read(filename)
+end
+```
+We hope to get these issues resolved in the future.
+Make sure to support our work, so we can continue developing this project.
+
+## HTTP and HTTPS
+This version of love.js includes "fetch.lua", a module that allows you to make HTTP/HTTPS requests.
+"fetch.lua" works asynchronously, using callbacks:
+```
+function love.load
+  love.fetch = require("fetch")
+  love.fetch.request("https://2dengine.com/", function(code, body)
+    print(code, body)
+  end)
+end
+
+function love.update(dt)
+  love.fetch.update()
+end
+```
+"fetch.lua" is an experimental module based on the mechanism invented by Marcelo Silva Nascimento Mancini.
+The "fetch.lua" module is not perfect by any means so please use it at your own discretion.
+
+## Privacy
 love.js uses indexedDB to cache game packages and store data on the user's device.
 love.js itself is fully GDPR compliant because:
 * Any cached data is stored locally and remains exclusively on the user's machine
@@ -52,14 +93,14 @@ love.js itself is fully GDPR compliant because:
 If your love.js game collects or processes personal information, you need to include the appropriate warnings yourself.
 
 ## Credits
-Front-end by 2dengine LLC (MIT License)
-https://github.com/2dengine/love.js
+[Front-end and improvements](https://github.com/2dengine/love.js) by 2dengine LLC (MIT License)
 
-Emscripten port by David Khachaturov (MIT License)
-https://github.com/Davidobot/love.js
+[Emscripten port](https://github.com/Davidobot/love.js) by David Khachaturov (MIT License)
 
-Original port by Tanner Rogalsky (MIT License)
-https://github.com/TannerRogalsky/love.js/
+[Original port](https://github.com/TannerRogalsky/love.js/) by Tanner Rogalsky (MIT License)
 
-CSS spinner by Luke Haas (MIT License)
-https://projects.lukehaas.me/css-loaders/
+[CSS spinner](https://projects.lukehaas.me/css-loaders/) by Luke Haas (MIT License)
+
+[fetch.lua](https://github.com/MrcSnm/Love.js-Api-Player) mechanism by Marcelo Silva Nascimento Mancini (MIT License)
+
+Please support our open source work by visiting https://2dengine.com

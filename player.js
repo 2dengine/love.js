@@ -20,10 +20,14 @@
   let url = new URL(script.src);
   if (!url.searchParams.has('g'))
     url = new URL(window.location.href);
-  let arg = url.searchParams.get('arg');
-  let uri = url.searchParams.get('g');
-  let compat = url.searchParams.get('c');
-  let version = url.searchParams.get('v');
+  const search = url.searchParams;
+  let arg = search.get('arg');
+  let uri = search.get('g');
+  let ops = {
+    compat: search.get('c'),
+    version: search.get('v'),
+    nocache: search.get('n') == '1',
+  };
 
   if (uri == null)
     uri = 'nogame.love';
@@ -41,12 +45,11 @@
   import('./game.js')
     .then((imported) => {
       const load = imported.default;
-
       // Runs the requested package
       window.runLove = () => {
         //state = 'loading';
         spinner.className = 'loading';
-        load(canvas, uri, arg, version, compat)
+        load(canvas, uri, arg, ops)
           .then((res) => {
             canvas.style.display = 'block';
             canvas.focus();
