@@ -12,6 +12,33 @@ body, #canvas {
   position:absolute;
 }
 
+/*
+@media only screen and (orientation:portrait) {
+  body {
+    height: 100vw;
+    transform: rotate(90deg);
+  }
+  
+  #canvas {    
+    left: 50vh;
+    transform: translate(-50%, 0);
+    border: 1px solid red;
+  }
+}
+
+@media screen and (orientation: portrait) {
+  html {
+    transform: rotate(-90deg);
+    transform-origin: left top;
+    width: 100vh;
+    height: 100vw;
+    overflow-x: hidden;
+    position: absolute;
+    top: 100%;
+    left: 0;
+  }
+}
+*/
 #spinner {
   box-sizing: border-box;
   font-size: 10px;
