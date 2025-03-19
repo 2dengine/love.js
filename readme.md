@@ -8,7 +8,7 @@ The source code is available on [GitHub](https://github.com/2dengine/love.js) an
 ## Installation
 The love.js player needs to be installed on a web server (it will not work if you open the "index.html" page locally in your browser).
 Copy all of the love.js files on you server, preferably in a separate directory.
-You need to set the correct HTTP headers from your server for the path where love.js is installed:
+You need to set the correct HTTP headers on your server for the path where love.js is installed:
 ```
 Header set Cross-Origin-Opener-Policy "same-origin"
 Header set Cross-Origin-Embedder-Policy "require-corp"
@@ -28,35 +28,32 @@ Use the "?g=" parameter to choose which game to run.
 
 Additionally, you can pass an array of arguments to your LÖVE app using the "&arg=" parameter:
 ```
-example.com/player/?g=mygame.love&arg=["--first","--second"]
+player.js?g=mygame.love&arg=["--first","--second"]
 ```
 
 You can switch between different versions (11.3, 11.4 or 11.5) of LÖVE using the "&v" parameter:
 ```
-example.com/player/?g=mygame.love&v=11.3
+player.js?g=mygame.love&v=11.3
 ```
 
 For development purposes, you can disable the package-caching feature using the "&n" parameter:
 ```
-example.com/player/?g=mygame.love&n=1
+player.js?g=mygame.love&n=1
 ```
 
 ## Limitations
-love.js is still a work-in-progress and has several known bugs.
-We have developed a front-end that can be used by both English and non-English speakers and have rewritten "game.js" from scratch.
+We have developed a front-end that doesn't require building and can be used by both English and non-English speakers.
 Nevertheless, "love.js" desperately needs refactoring which will take a lot of work.
+love.js is still a work-in-progress and has several known bugs.
 
 The games run slower compared to other platforms since love.js does not take advantage of LuaJIT.
 Certain games may fail to run or crash on systems with limited memory.
 Rendering works quite well across browsers although we have noticed font-related glitches.
 Additionally, WebGL shaders work differently compared to their desktop counterparts.
-There are also some audio compatibility issues especially when streaming music.
+There are some audio compatibility issues especially when streaming music.
 
 One of the more significant issues is that love.js crashes even in cases where "pcall" is used.
-love.js may crash if you try to access non-existent files, for example:
-```
-love.filesystem.read(non_existent_filename)
-```
+love.js may crash if you try to read non-existent files.
 A simple solution to the above-mentioned problem is to check if the file you are trying to access already exists:
 ```
 if love.filesystem.getInfo(filename) then
