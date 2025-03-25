@@ -1,15 +1,16 @@
 export default async (canvas, uri, arg, ops) => {
   return new Promise(async (resolve, reject) => {
     const indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
-    const fetchPkg = async () => {
+    
+    const openDB = async () => {
       // Open the local database used to cache packages
-      const db = await new Promise((resolve, reject) => {
+      let db = await new Promise((resolve, reject) => {
         const req = indexedDB.open('EM_PRELOAD_CACHE', 1);
         req.onupgradeneeded = (event) => {
-          const db = event.target.result;
-          if (db.objectStoreNames.contains('PACKAGES'))
-            db.deleteObjectStore('PACKAGES');
-          db.createObjectStore('PACKAGES');
+          const targ = event.target.result;
+          if (targ.objectStoreNames.contains('PACKAGES'))
+            targ.deleteObjectStore('PACKAGES');
+          targ.createObjectStore('PACKAGES');
         };
         req.onerror = (error) => {
           reject(error);
@@ -18,7 +19,6 @@ export default async (canvas, uri, arg, ops) => {
           resolve(event.target.result);
         };
       });
-
       // Check if the database is malformed
       if (!db.objectStoreNames.contains('PACKAGES')) {
         db.close();
@@ -28,20 +28,39 @@ export default async (canvas, uri, arg, ops) => {
             reject(error);
           }
           req.onsuccess = (event) => {
-            resolve();
+            resolve(event.target.result);
           }
         });
-        return await fetchPkg();
+        db = await openDB();
       }
-        
+      return db;
+    }
+    
+    const deletePkg = async (uri) => {
+      const db = await openDB();
+      // Delete the store package from cache
+      const ok = await new Promise((resolve, reject) => {
+        const trans = db.transaction(['PACKAGES'], 'readwrite');
+        const req = trans.objectStore('PACKAGES').delete(uri);
+        req.onerror = (error) => {
+          reject(error);
+        };
+        req.onsuccess = (event) => {
+          resolve();
+        };
+      });
+      return ok;
+    }
+    
+    const fetchPkg = async (usecache) => {
+      // Open the local database used to cache packages
+      const db = await openDB();
       // Check if there's a cached package, and if so whether it's the latest available
       let data = null;
-      if (!ops.nocache) {
+      if (usecache) {
         data = await new Promise((resolve, reject) => {
           const trans = db.transaction(['PACKAGES'], 'readonly');
-          const store = trans.objectStore('PACKAGES');
-          //const req = store.get('package/'+pkg);
-          const req = store.get(uri);
+          const req = trans.objectStore('PACKAGES').get(uri);
           req.onerror = (error) => {
             reject(error);
           };
@@ -67,9 +86,7 @@ export default async (canvas, uri, arg, ops) => {
         // Cache remote package for subsequent requests
         await new Promise((resolve, reject) => {
           const trans = db.transaction(['PACKAGES'], 'readwrite');
-          const store = trans.objectStore('PACKAGES');
-          //const req = store.put(data, 'package/'+pkg);
-          const req = store.put(data, uri);
+          const req = trans.objectStore('PACKAGES').put(data, uri);
           req.onerror = (error) => {
             reject(error);
           };
@@ -81,7 +98,7 @@ export default async (canvas, uri, arg, ops) => {
       return data;
     }
     
-    const data = await fetchPkg();
+    const data = await fetchPkg(!ops.nocache);
     if (!data)
       return reject('Could not parse the package contents');
     
@@ -101,7 +118,6 @@ export default async (canvas, uri, arg, ops) => {
 
     const runWithFS = async () => {
       Module.addRunDependency('fp '+pkg);
-      //const data = await fetchPkg();
       const ptr = Module.getMemory(data.length);
       Module['HEAPU8'].set(data, ptr);
       Module.FS_createDataFile('/', pkg, data, true, true, true);
@@ -162,44 +178,66 @@ export default async (canvas, uri, arg, ops) => {
 
     window.console.log = async (...args) => {
       const a = args[0];
-      if (typeof(a)  === 'string' && a.startsWith('@fetch')) {
-        const list = a.match(/^@fetch\t([^\t]+?)\t([^\t]+)\t?(.*)/);
-        if (list && list.length >= 2) {
-          let code = 0;
+      if (typeof(a)  === 'string' && a.startsWith('@')) {
+        const list = a.match(/^@([^\t]+)\t([^\t]+)\t([^\t]+)\t?(.*)/);
+        if (list) {
           let output = '';
           try {
-            const ops = (list[3]) ? JSON.parse(list[3]) : {};
-            ops.headers = ops.headers || {};
-            if (ops.body && typeof(ops.body) === 'object') {
-              const form = new FormData();
-              for (let k in ops.body)
-                form.append(k, ops.body[k]);
-              ops.body = form;
+            if (list[1] == 'fetch') {
+              // fetch api requests
+              const ops = (list[4]) ? JSON.parse(list[4]) : {};
+              ops.headers = ops.headers || {};
+              if (ops.body && typeof(ops.body) === 'object') {
+                const form = new FormData();
+                for (let k in ops.body)
+                  form.append(k, ops.body[k]);
+                ops.body = form;
+              }
+              const res = await fetch(list[3], ops);
+              let code = Array.from(String(res.code), Number);
+              while (code.length < 3)
+                code.unshift(0);
+              code = Uint8Array.from(code);
+              let data = await res.arrayBuffer();
+              if (data && data.byteLength > 0) {
+                output = new Uint8Array(output.byteLength + 3);
+                output.set(code, 0);
+                output.set(data, 3);
+              } else {
+                output = code;
+              }
+            } else if (list[1] == 'speak') {
+              // text-to-speech functionality
+              const synth = window.speechSynthesis;
+              if (synth) {
+                if (synth.speaking)
+                  synth.cancel();
+                const ops = (list[4]) ? JSON.parse(list[4]) : {};
+                const utter = new SpeechSynthesisUtterance(list[3]);
+                utter.volume = ops.volume;
+                utter.rate = ops.rate;
+                synth.speak(utter);
+                output = 'true';
+              } else {
+                output = 'false';
+              }
+            } else if (list[1] == 'reload') {
+              // package reloading
+              await deletePkg(uri);
+              window.location.reload();
             }
-            const res = await fetch(list[2], ops);
-            code = res.status;
-            //output = await res.text();
-            output = await res.arrayBuffer();
           } catch (error) {
             output = error;
             _console.warn(error);
           } finally {
-            let scode = '000'+code.toString();
-            scode = scode.substr(scode.length - 3);
-            scode = scode.split('').map(x => x.charCodeAt());
-            scode = Uint8Array.from(scode);
-            let data = scode;
-            if (output.byteLength > 0) {
-              data = new Uint8Array(output.byteLength + 3);
-              data.set(Uint8Array.from(scode), 0);
-              data.set(new Uint8Array(output), 3);
-            }
             // thanks to Nivas from stackoverflow.com/questions/3820381
-            const offset = list[1].lastIndexOf('/');
-            const base = list[1].substring(offset + 1);
-            const path = list[1].substring(0, offset);
-            Module.FS_createPath('/', path, true, true);
-            Module.FS_createDataFile(path, base, data, true, true, true);
+            if (list[2] && list[2] != '.') {
+              const offset = list[2].lastIndexOf('/');
+              const base = list[2].substring(offset + 1);
+              const path = list[2].substring(0, offset);
+              Module.FS_createPath('/', path, true, true);
+              Module.FS_createDataFile(path, base, output, true, true, true);
+            }
           }
           return;
         }
