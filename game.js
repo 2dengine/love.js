@@ -194,15 +194,19 @@ export default async (canvas, uri, arg, ops) => {
                 ops.body = form;
               }
               const res = await fetch(list[3], ops);
-              let code = Array.from(String(res.code), Number);
+              let code = Array.from(String(res.status), Number);
               while (code.length < 3)
                 code.unshift(0);
+              for (let i = 0; i < code.length; i++)
+                code[i] += 48;
               code = Uint8Array.from(code);
+
               let data = await res.arrayBuffer();
               if (data && data.byteLength > 0) {
-                output = new Uint8Array(output.byteLength + 3);
-                output.set(code, 0);
-                output.set(data, 3);
+                output = new Uint8Array(data.byteLength + 3);
+                output.set(code);
+                output.set(new Uint8Array(data), 3);
+
               } else {
                 output = code;
               }
