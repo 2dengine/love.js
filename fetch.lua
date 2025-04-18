@@ -2,6 +2,7 @@
 -- @module fetch
 -- @alias fetch
 local fetch = {}
+love.fetch = fetch
 
 local function tojson(data)
   local list = {}
@@ -47,7 +48,7 @@ function fetch.request(url, ops, func)
   -- uses the global print function to send data to JS
   print('@fetch', sav..'/'..handle, url, json)
 
-  requests[handle] = func
+  requests[handle] = func or false
   
   return handle
 end
@@ -65,7 +66,9 @@ function fetch.update()
         code = tonumber(code) or 0
         lfs.remove(handle)
         table.insert(marked, handle)
-        func(code, body)
+        if type(func) == "function" then
+          func(code, body)
+        end
       end
     end
   end
