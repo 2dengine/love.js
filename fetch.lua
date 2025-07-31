@@ -54,6 +54,7 @@ function fetch.request(url, ops, func)
 end
 
 --- Updates all pending fetch requests.
+-- This is an internal function called automatically unless you overwrite love.run.
 -- Calling this function may trigger any user-defined callbacks.
 function fetch.update()
   local marked = {}
