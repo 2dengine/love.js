@@ -86,12 +86,12 @@ SOFTWARE.
   Player.deletePkgs = function () {
     return new Promise(function (resolve, reject) {
       var req = indexedDB.deleteDatabase('PACKAGES');
-      req.onerror(function (e) {
+      req.onerror = function (e) {
         reject(e);
-      });
-      req.onsuccess(function (db) {
+      };
+      req.onsuccess = function (e) {
         resolve();
-      });
+      };
     });
   }
   
@@ -276,8 +276,9 @@ SOFTWARE.
 
       // fetch requests
       Module.commands.fetch = function(args) {
-        var output = '';
-        var ops = (args[4]) ? JSON.parse(args[4]) : {};
+        if (args.length < 2)
+          return;
+        var ops = (args[2]) ? JSON.parse(args[2]) : {};
         ops.headers = ops.headers || {};
         if (ops.body && typeof(ops.body) === 'object') {
           var form = new FormData();
@@ -286,7 +287,7 @@ SOFTWARE.
           ops.body = form;
         }
         var code = 0;
-        fetch(args[3], ops)
+        fetch(args[1], ops)
           .then(function (res) {
             code = Array.from(String(res.status), Number);
             return res.arrayBuffer();
@@ -310,12 +311,15 @@ SOFTWARE.
             _console.warn(error);
           })
           .finally (function () {
-            Module.writeFile(args[2], output);
+            if (args[0] != '.')
+              Module.writeFile(args[0], output);
           });
       }
 
       // clipboard support
       Module.commands.clipboard = function(args) {
+        if (args.length < 1)
+          return;
         Module.pauseMainLoop();
         var output = '';
         navigator.clipboard.readText()
@@ -326,32 +330,39 @@ SOFTWARE.
             _console.warn(error);
           })
           .finally (function () {
-            Module.writeFile(args[2], output);
-            Module.resumeMainLoop();
+            if (args[0] != '.')
+              Module.writeFile(args[0], output);
+            //Module.resumeMainLoop();
           });
       }
 
       // text-to-speech
       Module.commands.speak = function(args) {
+        if (args.length < 2)
+          return;
         var synth = window.speechSynthesis;
         if (synth) {
           if (synth.speaking)
             synth.cancel();
-          var ops = (args[4]) ? JSON.parse(args[4]) : {};
-          var utter = new SpeechSynthesisUtterance(args[3]);
-          utter.volume = ops.volume;
-          utter.rate = ops.rate;
+          var ops = (args[2]) ? JSON.parse(args[2]) : {};
+          // works in most modern browsers, but not all
+          var utter = new SpeechSynthesisUtterance(args[1]);
+          if (ops.volume !== null)
+            utter.volume = ops.volume;
+          if (ops.rate !== null)
+            utter.rate = ops.rate;
           synth.speak(utter);
           output = 'true';
         } else {
           output = 'false';
         }
-        Module.writeFile(args[2], output);
+        if (args[0] != '.')
+          Module.writeFile(args[0], output);
       }
 
       // package reloading
       Module.commands.reload = function(args) {
-        deletePkgs()
+        Player.deletePkgs()
           .then(function () {
             window.location.reload();
           });
@@ -359,12 +370,13 @@ SOFTWARE.
 
       // execute command
       Module.command = function (cmd) {
-        var args = cmd.match(/^([^\t]+)\t([^\t]+)\t([^\t]+)\t?(.*)/);
-        if (!args)
+        var list = cmd.split('\t');
+        if (!list || !list[0])
           return;
-        var func = Module.commands[args[1]];
+        var name = list.shift();
+        var func = Module.commands[name];
         if (func)
-          func(args);
+          func(list);
       }
 
       // grab the console and process fetch requests
@@ -446,14 +458,14 @@ SOFTWARE.
   window.onclick = function (e) {
     window.focus();
   };
-
-  // Disable scrolling using the arrow keys
-  var prevent = [37, 38, 39, 40, 13];
-  window.onkeydown = function (e) {
-    if (prevent.indexOf(e.keyCode) > -1)
+/*
+  // Disable scrolling while using the arrow keys
+  var codes = [37, 38, 39, 40, 13];
+  window.onkeydown = window.onkeyup = window.onkeypress = function (e) {
+    if (codes.indexOf(e.keyCode || e.which || 0) > -1)
       e.preventDefault();
   }
-
+*/
   // Fixes a persistence bug when using the back and forward buttons
   window.onpageshow = function (event) {
     canvas.style.display = 'none';
