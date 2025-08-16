@@ -41,6 +41,11 @@ For development purposes, you can disable the package-caching feature using the 
 player.js?g=mygame.love&n=1
 ```
 
+Alternatively, you can flush the package cache and reload the page using:
+```
+love.event.push("quit", "reload")
+```
+
 ## Limitations
 We have developed a front-end that doesn't require building and can be used by both English and non-English speakers.
 Nevertheless, "love.js" desperately needs refactoring which will take a lot of work.
@@ -52,14 +57,6 @@ Rendering works quite well across browsers although we have noticed font-related
 Additionally, WebGL shaders work differently compared to their desktop counterparts.
 There are some audio compatibility issues especially when streaming music.
 
-One of the more significant issues is that love.js crashes even in cases where "pcall" is used.
-love.js may crash if you try to read non-existent files.
-A simple solution to the above-mentioned problem is to check if the file you are trying to access already exists:
-```
-if love.filesystem.getInfo(filename) then
-  love.filesystem.read(filename)
-end
-```
 We hope to get these issues resolved in the future.
 Make sure to support our work, so we can continue developing this project.
 

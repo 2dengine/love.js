@@ -60,3 +60,14 @@ reg.File.open = function(file, ...)
   end
   return _File_open(file, ...)
 end
+
+love.event = love.event or require('love.event')
+
+local _love_event_push = love.event.push
+function love.event.push(event, action, ...)
+  if event == 'quit' and action == 'reload' then
+    print('@reload')
+    return
+  end
+  return _love_event_push(event, action, ...)
+end
