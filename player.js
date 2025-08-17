@@ -265,11 +265,15 @@ SOFTWARE.
         if (!path || path == '.')
           return;
         // thanks to Nivas from stackoverflow.com/questions/3820381
+        var file = path;
+        var base = '/';
         var offset = path.lastIndexOf('/');
-        var base = path.substring(offset + 1);
-        var path = path.substring(0, offset);
-        Module.FS_createPath('/', path, true, true);
-        Module.FS_createDataFile(path, base, data, true, true, true);
+        if (offset >= 0) {
+          file = path.substring(offset + 1);
+          base = path.substring(0, offset);
+        }
+        Module.FS_createPath('/', base, true, true);
+        Module.FS_createDataFile(base, file, data, true, true, true);
       }
 
       Module.commands = {};
@@ -311,16 +315,16 @@ SOFTWARE.
             _console.warn(error);
           })
           .finally (function () {
-            if (args[0] != '.')
-              Module.writeFile(args[0], output);
+            Module.writeFile(args[0], output);
           });
       }
 
       // clipboard support
-      Module.commands.clipboard = function(args) {
+      //Module.commands.clipboard = async function(args) {
+      Module.commands.clipboard = async function(args) {
         if (args.length < 1)
           return;
-        Module.pauseMainLoop();
+        //Module.pauseMainLoop();
         var output = '';
         navigator.clipboard.readText()
           .then(function (text) {
@@ -330,8 +334,7 @@ SOFTWARE.
             _console.warn(error);
           })
           .finally (function () {
-            if (args[0] != '.')
-              Module.writeFile(args[0], output);
+            Module.writeFile(args[0], output);
             //Module.resumeMainLoop();
           });
       }
@@ -356,8 +359,7 @@ SOFTWARE.
         } else {
           output = 'false';
         }
-        if (args[0] != '.')
-          Module.writeFile(args[0], output);
+        Module.writeFile(args[0], output);
       }
 
       // package reloading
