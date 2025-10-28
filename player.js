@@ -282,7 +282,17 @@ SOFTWARE.
       Module.commands.fetch = function(args) {
         if (args.length < 2)
           return;
-        var ops = (args[2]) ? JSON.parse(args[2]) : {};
+        var ops = {};
+        if (args[2]) {
+          try {
+            ops = JSON.parse(args[2]);
+          } catch (error) {
+            _console.warn(error);
+            Module.writeFile(args[0], '000'+error.toString());
+          }
+        }
+        if (!ops.method)
+          ops.method = 'GET';
         ops.headers = ops.headers || {};
         if (ops.body && typeof(ops.body) === 'object') {
           var form = new FormData();
@@ -290,41 +300,45 @@ SOFTWARE.
             form.append(k, ops.body[k]);
           ops.body = form;
         }
+        
         var code = 0;
+        var data = null;
         fetch(args[1], ops)
           .then(function (res) {
-            code = Array.from(String(res.status), Number);
+            code = res.status;
             return res.arrayBuffer();
           })
-          .then(function (data) {
-            while (code.length < 3)
-              code.unshift(0);
-            for (var i = 0; i < code.length; i++)
-              code[i] += 48;
-            code = Uint8Array.from(code);
-            if (data && data.byteLength > 0) {
-              output = new Uint8Array(data.byteLength + 3);
-              output.set(code);
-              output.set(new Uint8Array(data), 3);
-            } else {
-              output = code;
-            }
+          .then(function (array) {
+            data = array;
           })
           .catch (function (error) {
-            output = error;
+            var msg = error.toString();
+            var bytes = new Uint8Array(msg.length);
+            for (var i = 0; i < msg.length; i++)
+              bytes[i] = msg.charCodeAt(i);
+            data = bytes.buffer;
             _console.warn(error);
           })
           .finally (function () {
+            var acode = Array.from(String(code), Number);
+            while (acode.length < 3)
+              acode.unshift(0);
+            for (var i = 0; i < acode.length; i++)
+              acode[i] = String.fromCharCode(acode[i]);
+            acode = Uint8Array.from(acode);
+            var length = (data) ? data.byteLength : 0;
+            var output = new Uint8Array(length + 3);
+            output.set(acode);
+            if (data && data.byteLength > 0)
+              output.set(new Uint8Array(data), 3);
             Module.writeFile(args[0], output);
           });
       }
 
       // clipboard support
-      //Module.commands.clipboard = async function(args) {
-      Module.commands.clipboard = async function(args) {
+      Module.commands.clipboard = function(args) {
         if (args.length < 1)
           return;
-        //Module.pauseMainLoop();
         var output = '';
         navigator.clipboard.readText()
           .then(function (text) {
@@ -335,7 +349,6 @@ SOFTWARE.
           })
           .finally (function () {
             Module.writeFile(args[0], output);
-            //Module.resumeMainLoop();
           });
       }
 
@@ -375,10 +388,12 @@ SOFTWARE.
         var list = cmd.split('\t');
         if (!list || !list[0])
           return;
+        //Module.pauseMainLoop();
         var name = list.shift();
         var func = Module.commands[name];
         if (func)
           func(list);
+        //Module.resumeMainLoop();
       }
 
       // grab the console and process fetch requests
@@ -392,7 +407,8 @@ SOFTWARE.
         var a = arguments[0];
         if (typeof(a) === 'string' && a.startsWith('@'))
           Module.command(a.substring(1));
-        return _console.info.apply(null, arguments);
+        else
+          return _console.info.apply(null, arguments);
       }
 
     });
