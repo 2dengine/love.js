@@ -323,8 +323,10 @@ SOFTWARE.
             var acode = Array.from(String(code), Number);
             while (acode.length < 3)
               acode.unshift(0);
+            //for (var i = 0; i < acode.length; i++)
+              //acode[i] = String.fromCharCode(acode[i]);
             for (var i = 0; i < acode.length; i++)
-              acode[i] = String.fromCharCode(acode[i]);
+              acode[i] += 48;
             acode = Uint8Array.from(acode);
             var length = (data) ? data.byteLength : 0;
             var output = new Uint8Array(length + 3);
