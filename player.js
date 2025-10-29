@@ -255,12 +255,25 @@ SOFTWARE.
 
       window.Module = Module;
 
-      if (Module._console)
+      if (Module._open)
         return;
-      
-      var _console = window.console;
-      Module._console = _console;
-      
+      Module._open = window.open;
+      window.open = function(url) {
+        if (Module.command(url))
+          return;
+        //return Module._open(url);
+        return Module._open.apply(null, arguments);
+      }
+
+      // the prompt can send UTF-8 strings to Lua synchronously
+      var _prompt = null;
+      window.prompt = function(a) {
+        var tmp = _prompt;
+        _prompt = null;
+        return tmp;
+      }
+
+      // the following function sends binary data to Lua
       Module.writeFile = function(path, data) {
         if (!path || path == '.')
           return;
@@ -279,20 +292,9 @@ SOFTWARE.
       Module.commands = {};
 
       // fetch requests
-      Module.commands.fetch = function(args) {
-        if (args.length < 2)
-          return;
-        var ops = {};
-        if (args[2]) {
-          try {
-            ops = JSON.parse(args[2]);
-          } catch (error) {
-            _console.warn(error);
-            Module.writeFile(args[0], '000'+error.toString());
-          }
-        }
-        if (!ops.method)
-          ops.method = 'GET';
+      Module.commands.fetch = function(ops) {
+        ops = ops || {};
+        ops.method = ops.method || 'GET';
         ops.headers = ops.headers || {};
         if (ops.body && typeof(ops.body) === 'object') {
           var form = new FormData();
@@ -303,7 +305,7 @@ SOFTWARE.
         
         var code = 0;
         var data = null;
-        fetch(args[1], ops)
+        fetch(ops.url, ops)
           .then(function (res) {
             code = res.status;
             return res.arrayBuffer();
@@ -317,14 +319,12 @@ SOFTWARE.
             for (var i = 0; i < msg.length; i++)
               bytes[i] = msg.charCodeAt(i);
             data = bytes.buffer;
-            _console.warn(error);
+            console.warn(error);
           })
           .finally (function () {
             var acode = Array.from(String(code), Number);
             while (acode.length < 3)
               acode.unshift(0);
-            //for (var i = 0; i < acode.length; i++)
-              //acode[i] = String.fromCharCode(acode[i]);
             for (var i = 0; i < acode.length; i++)
               acode[i] += 48;
             acode = Uint8Array.from(acode);
@@ -333,52 +333,57 @@ SOFTWARE.
             output.set(acode);
             if (data && data.byteLength > 0)
               output.set(new Uint8Array(data), 3);
-            Module.writeFile(args[0], output);
+            Module.writeFile(ops.sink, output);
           });
       }
 
       // clipboard support
-      Module.commands.clipboard = function(args) {
-        if (args.length < 1)
-          return;
-        var output = '';
+      var _clipboard = false;
+      function updateClipboard() {
+        // reading from the clipboard can only be done in a secure context
+        // and it doesn't work well in Mozilla-based browsers
         navigator.clipboard.readText()
           .then(function (text) {
-            output = text;
+            _clipboard = text;
           })
-          .catch (function (error) {
-            _console.warn(error);
-          })
-          .finally (function () {
-            Module.writeFile(args[0], output);
+          .catch(function (error) {})
+          .finally(function() {
+            setTimeout(function() {
+              updateClipboard();
+            }, 10);
           });
+      }
+      Module.commands.clipboard = async function(ops) {
+        if (ops.text !== undefined) {
+          _clipboard = ops.text;
+          navigator.clipboard.writeText(ops.text)
+            .catch(function () {});
+          document.execCommand('copy');
+        } else {
+          if (_clipboard === false) {
+            _clipboard = '';
+            updateClipboard();
+          }
+          _prompt = _clipboard;
+        }
       }
 
       // text-to-speech
-      Module.commands.speak = function(args) {
-        if (args.length < 2)
-          return;
+      Module.commands.speak = function(ops) {
         var synth = window.speechSynthesis;
         if (synth) {
           if (synth.speaking)
             synth.cancel();
-          var ops = (args[2]) ? JSON.parse(args[2]) : {};
           // works in most modern browsers, but not all
-          var utter = new SpeechSynthesisUtterance(args[1]);
-          if (ops.volume !== null)
-            utter.volume = ops.volume;
-          if (ops.rate !== null)
-            utter.rate = ops.rate;
+          var utter = new SpeechSynthesisUtterance(ops.utterance);
+          utter.volume = ops.volume || 1;
+          utter.rate = ops.rate || 1;
           synth.speak(utter);
-          output = 'true';
-        } else {
-          output = 'false';
         }
-        Module.writeFile(args[0], output);
       }
 
       // package reloading
-      Module.commands.reload = function(args) {
+      Module.commands.reload = function(ops) {
         Player.deletePkgs()
           .then(function () {
             window.location.reload();
@@ -386,31 +391,24 @@ SOFTWARE.
       }
 
       // execute command
+      var regex = /^([\w]+)(.*)/;
       Module.command = function (cmd) {
-        var list = cmd.split('\t');
-        if (!list || !list[0])
+        if (!cmd.startsWith('javascript:'))
           return;
-        //Module.pauseMainLoop();
-        var name = list.shift();
-        var func = Module.commands[name];
-        if (func)
-          func(list);
-        //Module.resumeMainLoop();
-      }
-
-      // grab the console and process fetch requests
-      window.console = {};
-      for (var k in _console)
-        if (typeof _console[k] == 'function')
-          window.console[k] = _console[k].bind(_console);
-
-      // handle custom Lua messages from the console
-      window.console.log = function () {
-        var a = arguments[0];
-        if (typeof(a) === 'string' && a.startsWith('@'))
-          Module.command(a.substring(1));
-        else
-          return _console.info.apply(null, arguments);
+        cmd = cmd.substring(11);
+        var matches = regex.exec(cmd);
+        if (!matches[1])
+          return false;
+        var ops;
+        try {
+          ops = JSON.parse(matches[2]);
+        } catch (error) {};
+        ops = ops || {};
+        var func = Module.commands[matches[1]];
+        if (!func)
+          return false;
+        func(ops);
+        return true;
       }
 
     });

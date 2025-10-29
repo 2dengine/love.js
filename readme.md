@@ -75,8 +75,8 @@ function love.update(dt)
   love.fetch.update()
 end
 ```
-"fetch.lua" is an experimental module based on the mechanism invented by Marcelo Silva Nascimento Mancini.
-The "fetch.lua" module is not perfect by any means so please use it at your own discretion.
+"fetch.lua" is an experimental module and is not perfect by any means.
+Please use it at your own discretion.
 
 ## Privacy
 love.js uses indexedDB to cache game packages and store data on the user's device.
@@ -95,6 +95,8 @@ If your love.js game collects or processes personal information, you need to inc
 
 [CSS spinner](https://projects.lukehaas.me/css-loaders/) by Luke Haas (MIT License)
 
-[fetch.lua](https://github.com/MrcSnm/Love.js-Api-Player) mechanism by Marcelo Silva Nascimento Mancini (MIT License)
+[print](https://github.com/MrcSnm/Love.js-Api-Player) technique by Marcelo Silva Nascimento Mancini (MIT License)
+
+[io.read](https://github.com/HamdyElzanqali/love-with-js) technique by Hamdy Elzanqali
 
 Please support our open source work by visiting https://2dengine.com

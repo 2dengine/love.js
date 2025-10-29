@@ -26,41 +26,11 @@ SOFTWARE.
 ]]
 
 --- The fetch module is used to access resources over HTTP and HTTPS.
+-- It requires love.js and depends on normalize.js to work
 -- @module fetch
 -- @alias fetch
 local fetch = {}
 love.fetch = fetch
-
-
--- bare bones JSON encoding thanks to https://github.com/rxi/json.lua
-local escape = {
-  ["\\"]="\\",
-  ["\""]="\"",
-  ["\b"]="b",
-  ["\f"]="f",
-  ["\n"]="n",
-  ["\r"]="r",
-  ["\t"]="t",
-}
-local function encode(c)
-  return "\\"..(escape[c] or string.format("u%04x", c:byte()))
-end
-local function tojson(data)
-  local list = {}
-  for k, v in pairs(data) do
-    local t = type(v)
-    if t == 'table' then
-      v = tojson(v)
-    elseif t == 'string' then
-      v = '"'..v:gsub('[%z\1-\31\\"]', encode)..'"'
-    else
-      v = tostring(v)
-    end
-    table.insert(list, string.format('%q:%s', k, v))
-  end
-  return '{'..table.concat(list, ',')..'}'
-end
-
 
 local lfs = love.filesystem
 local sav = lfs.getSaveDirectory()
@@ -88,11 +58,11 @@ function fetch.request(url, ops, func)
     end
     return
   end
-  handle = handle:gsub("[/%.]", "")..".tmp"
+  handle = handle:gsub("[/%.]", "").."_fetch.tmp"
+  ops.url = url
+  ops.sink = sav..'/'..handle
   -- fetch using love.js
-  local json = tojson(ops)
-  -- uses the global print function to send data to JS
-  print('@fetch', sav..'/'..handle, url, json)
+  love.system.js('fetch', ops)
 
   requests[handle] = func or false
   return handle
@@ -141,7 +111,7 @@ end
 --- Cleans up temporary fetch files from the user directory.
 local list = lfs.getDirectoryItems('')
 for _, v in ipairs(list) do
-  if v:match('%.tmp$') then
+  if v:match('_fetch%.tmp$') then
     if lfs.getRealDirectory(v) == sav then
       lfs.remove(v)
     end
