@@ -177,7 +177,6 @@ SOFTWARE.
   Player.fetchPkgs = function(uri, nocache) {
     return new Promise(function (resolve, reject) {
       var list = [ uri ];
-      list.push('fetch.lua');
       list.push('normalize.lua');
       var loaded = 0;
       var cache = {};
