@@ -291,52 +291,6 @@ SOFTWARE.
 
       Module.commands = {};
 
-      // fetch requests
-      Module.commands.fetch = function(ops) {
-        ops = ops || {};
-        ops.method = ops.method || 'GET';
-        ops.headers = ops.headers || {};
-        if (ops.body && typeof(ops.body) === 'object') {
-          var form = new FormData();
-          for (var k in ops.body)
-            form.append(k, ops.body[k]);
-          ops.body = form;
-        }
-        
-        var code = 0;
-        var data = null;
-        fetch(ops.url, ops)
-          .then(function (res) {
-            code = res.status;
-            return res.arrayBuffer();
-          })
-          .then(function (array) {
-            data = array;
-          })
-          .catch (function (error) {
-            var msg = error.toString();
-            var bytes = new Uint8Array(msg.length);
-            for (var i = 0; i < msg.length; i++)
-              bytes[i] = msg.charCodeAt(i);
-            data = bytes.buffer;
-            console.warn(error);
-          })
-          .finally (function () {
-            var acode = Array.from(String(code), Number);
-            while (acode.length < 3)
-              acode.unshift(0);
-            for (var i = 0; i < acode.length; i++)
-              acode[i] += 48;
-            acode = Uint8Array.from(acode);
-            var length = (data) ? data.byteLength : 0;
-            var output = new Uint8Array(length + 3);
-            output.set(acode);
-            if (data && data.byteLength > 0)
-              output.set(new Uint8Array(data), 3);
-            Module.writeFile(ops.sink, output);
-          });
-      }
-
       // clipboard support
       var _clipboard = false;
       function updateClipboard() {
@@ -365,20 +319,6 @@ SOFTWARE.
             updateClipboard();
           }
           _prompt = _clipboard;
-        }
-      }
-
-      // text-to-speech
-      Module.commands.speak = function(ops) {
-        var synth = window.speechSynthesis;
-        if (synth) {
-          if (synth.speaking)
-            synth.cancel();
-          // works in most modern browsers, but not all
-          var utter = new SpeechSynthesisUtterance(ops.utterance);
-          utter.volume = ops.volume || 1;
-          utter.rate = ops.rate || 1;
-          synth.speak(utter);
         }
       }
 

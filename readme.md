@@ -60,24 +60,6 @@ There are some audio compatibility issues especially when streaming music.
 We hope to get these issues resolved in the future.
 Make sure to support our work, so we can continue developing this project.
 
-## HTTP and HTTPS
-This version of love.js includes "fetch.lua", a module that allows you to make HTTP/HTTPS requests.
-"fetch.lua" works asynchronously, using callbacks:
-```
-function love.load
-  love.fetch = require("fetch")
-  love.fetch.request("https://2dengine.com/", function(code, body)
-    print(code, body)
-  end)
-end
-
-function love.update(dt)
-  love.fetch.update()
-end
-```
-"fetch.lua" is an experimental module and is not perfect by any means.
-Please use it at your own discretion.
-
 ## Privacy
 love.js uses indexedDB to cache game packages and store data on the user's device.
 love.js itself is fully GDPR compliant because:
