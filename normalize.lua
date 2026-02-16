@@ -48,69 +48,19 @@ function lfs.newFileData(fn, arg, ...)
 end
 
 local reg = debug.getregistry()
-if not reg then
-  return
-end
-
-local _File_open = reg.File.open
-reg.File.open = function(file, ...)
-  local fn = file:getFilename()
-  if not _lfs_getInfo(fn) then
-    return nil, 'File does not exist: '..fn
-  end
-  return _File_open(file, ...)
-end
-
-love.event = love.event or require('love.event')
-local _love_event_push = love.event.push
-function love.event.push(event, action, ...)
-  if event == 'quit' and action == 'reload' then
-    love.system.js('reload')
-    return
-  end
-  return _love_event_push(event, action, ...)
-end
-
-love.audio = love.audio or require('love.audio')
-local playing = {}
-local function _cleanup_playing()
-  for s in pairs(playing) do
-    if not s:isPlaying() then
-      playing[s] = nil
+if reg then
+  local _File_open = reg.File.open
+  reg.File.open = function(file, ...)
+    local fn = file:getFilename()
+    if not _lfs_getInfo(fn) then
+      return nil, 'File does not exist: '..fn
     end
-  end
-end
-local _love_audio_play = love.audio.play
-function love.audio.play(...)
-  _cleanup_playing()
-  -- track currently playing
-  for i = 1, select("#", ...) do
-    local s = select(i, ...)
-    playing[s] = true
-  end
-  return _love_audio_play(...)
-end
-
-local _love_audio_stop = love.audio.stop
-function love.audio.stop(source, ...)
-  if source then
-    return _love_audio_stop(source, ...)
-  end
-  for s in pairs(playing) do
-    s:stop()
-    playing[s] = nil
+    return _File_open(file, ...)
   end
 end
 
-local _Source_play = reg.Source.play
-reg.Source.play = function(source, ...)
-  _cleanup_playing()
-  playing[source] = true
-  return _Source_play(source, ...)
-end
-
+-- todo: system module cannot be disabled from conf.lua
 love.system = love.system or require('love.system')
-
 -- bare bones JSON encoding thanks to https://github.com/rxi/json.lua
 local escape = {
   ["\\"]="\\",
