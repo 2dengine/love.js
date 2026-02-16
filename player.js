@@ -178,6 +178,7 @@ SOFTWARE.
     return new Promise(function (resolve, reject) {
       var list = [ uri ];
       list.push('normalize.lua');
+      list.push('normalizem.lua');
       var loaded = 0;
       var cache = {};
       for (let i = 0; i < list.length; i++) {
