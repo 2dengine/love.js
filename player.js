@@ -198,6 +198,24 @@ SOFTWARE.
 
   Player.runPkgs = function(uri, cache, arg, canvas, ops) {
     return new Promise(function (resolve, reject) {
+      ops.base = ops.version + '/' + ((ops.compat) ? 'compat' : 'release');
+/*
+      var prefetch = [ 'love.wasm', 'love.js', 'love.worker.js' ];
+      for (var i = 0; i < prefetch.length; i++) {
+        var file = prefetch[i];
+        var elink = document.createElement('link');
+        elink.rel = 'preload';
+        elink.href = ops.base+'/'+file;
+        elink.crossOrigin = 'anonymous';
+        elink.as = 'script';
+        elink.type = 'application/javascript';
+        if (file.endsWith('.wasm')) {
+          elink.as = 'fetch';
+          elink.type = 'application/wasm';
+        }
+        document.head.appendChild(elink);
+      }
+*/
       //var pkg = 'game.love';
       var Module = {};
 
@@ -239,10 +257,9 @@ SOFTWARE.
 
       if (window.Love === undefined) {
         // this operation initiates local storage
-        var version = ops.version ||  '11.5';
         var s = document.createElement('script');
         s.type = 'text/javascript';
-        s.src = version + ((ops.compat) ? '/compat/love.js' : '/release/love.js');
+        s.src = ops.base + '/love.js';
         s.async = true;
         s.onload = function () {
           resolve(Module);
@@ -291,6 +308,52 @@ SOFTWARE.
 
       Module.commands = {};
 
+      // fetch requests
+      Module.commands.fetch = function(ops) {
+        ops = ops || {};
+        ops.method = ops.method || 'GET';
+        ops.headers = ops.headers || {};
+        if (ops.body && typeof(ops.body) === 'object') {
+          var form = new FormData();
+          for (var k in ops.body)
+            form.append(k, ops.body[k]);
+          ops.body = form;
+        }
+        
+        var code = 0;
+        var data = null;
+        fetch(ops.url, ops)
+          .then(function (res) {
+            code = res.status;
+            return res.arrayBuffer();
+          })
+          .then(function (array) {
+            data = array;
+          })
+          .catch (function (error) {
+            var msg = error.toString();
+            var bytes = new Uint8Array(msg.length);
+            for (var i = 0; i < msg.length; i++)
+              bytes[i] = msg.charCodeAt(i);
+            data = bytes.buffer;
+            console.warn(error);
+          })
+          .finally (function () {
+            var acode = Array.from(String(code), Number);
+            while (acode.length < 3)
+              acode.unshift(0);
+            for (var i = 0; i < acode.length; i++)
+              acode[i] += 48;
+            acode = Uint8Array.from(acode);
+            var length = (data) ? data.byteLength : 0;
+            var output = new Uint8Array(length + 3);
+            output.set(acode);
+            if (data && data.byteLength > 0)
+              output.set(new Uint8Array(data), 3);
+            Module.writeFile(ops.sink, output);
+          });
+      }
+
       // clipboard support
       var _clipboard = false;
       function updateClipboard() {
@@ -319,6 +382,20 @@ SOFTWARE.
             updateClipboard();
           }
           _prompt = _clipboard;
+        }
+      }
+
+      // text-to-speech
+      Module.commands.speak = function(ops) {
+        var synth = window.speechSynthesis;
+        if (synth) {
+          if (synth.speaking)
+            synth.cancel();
+          // works in most modern browsers, but not all
+          var utter = new SpeechSynthesisUtterance(ops.utterance);
+          utter.volume = ops.volume || 1;
+          utter.rate = ops.rate || 1;
+          synth.speak(utter);
         }
       }
 
@@ -383,8 +460,8 @@ SOFTWARE.
   var arg = search.get('arg');
   var uri = search.get('g');
   var ops = {
-    compat: search.get('c'),
-    version: search.get('v'),
+    version: search.get('v') || '11.5',
+    compat: search.get('c') == '1',
     nocache: search.get('n') == '1',
   };
   if (uri == null)
@@ -451,9 +528,12 @@ SOFTWARE.
         Player.runPkgs(uri, cache, varg, canvas, ops)
           .then(function (Module) {
             Love(Module);
-            canvas.style.display = 'block';
-            canvas.focus();
-            spinner.className = '';
+            Module.onRuntimeInitialized = function() {
+              // hide the spinner
+              canvas.style.display = 'block';
+              canvas.focus();
+              spinner.className = '';
+            }
           });
       })
       .catch(function (err) {
