@@ -1009,7 +1009,7 @@ var Love = (function() {
       var tempI64;
       var ASM_CONSTS = {
         354812: async function($0) {
-          await window.open(UTF8ToString($0));
+          window.open(UTF8ToString($0));
           return 0
         },
         1015334: function($0, $1) {

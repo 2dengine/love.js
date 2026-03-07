@@ -461,7 +461,7 @@ SOFTWARE.
   var uri = search.get('g');
   var ops = {
     version: search.get('v') || '11.5',
-    compat: search.get('c') == '1',
+    compat: search.get('c') != '0',
     nocache: search.get('n') == '1',
   };
   if (uri == null)
