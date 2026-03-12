@@ -173,12 +173,12 @@ SOFTWARE.
         });
     });
   }
-  
+
   Player.fetchPkgs = function(uri, nocache) {
     return new Promise(function (resolve, reject) {
       var list = [ uri ];
-      list.push('normalize.lua');
-      list.push('normalizem.lua');
+      list.push('lua/normalize1.lua');
+      list.push('lua/normalize2.lua');
       var loaded = 0;
       var cache = {};
       for (let i = 0; i < list.length; i++) {
@@ -239,7 +239,8 @@ SOFTWARE.
             Module.FS_createDataFile('/', arg[0], data, true, true, true);
           } else {
             // module
-            Module.FS_createDataFile('/usr/local/share/lua/5.1', file, cache[file], true, true, true);
+            var fn = file.split('/').pop();
+            Module.FS_createDataFile('/usr/local/share/lua/5.1', fn, cache[file], true, true, true);
           }
           Module.removeRunDependency('fp '+file);
           Module.finishedDataFileDownloads ++;
