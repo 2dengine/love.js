@@ -69,6 +69,8 @@ love.js itself is fully GDPR compliant because:
 If your love.js game collects or processes personal information, you need to include the appropriate warnings yourself.
 
 ## Credits
+[Love2D](https://love2d.org) by LÖVE Development Team (zLib License)
+
 [Front-end and improvements](https://github.com/2dengine/love.js) by 2dengine LLC (MIT License)
 
 [Emscripten port](https://github.com/Davidobot/love.js) by David Khachaturov (MIT License)
