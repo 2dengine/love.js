@@ -513,11 +513,6 @@ SOFTWARE.
       window.location.reload();
   };
   
-  if (!window.SharedArrayBuffer) {
-    throw new Error('The Cross-Origin Policy is not configured properly');
-    return;
-  }
-
   // Runs the requested package
   Player.runLove = function () {
     spinner.className = 'loading';
