@@ -458,15 +458,19 @@ SOFTWARE.
     url = new URL(window.location.href);
 
   var search = url.searchParams;
-  var arg = search.get('arg');
-  var uri = search.get('g');
   var ops = {
     version: search.get('v') || '11.5',
     compat: search.get('c') != '0',
     nocache: search.get('n') == '1',
   };
+  // ignore invalid version arguments
+  if (ops.version != '11.5' && ops.version != '11.4' && ops.version != '11.3')
+    ops.version = '11.5';
+
+  var uri = search.get('g');
   if (uri == null)
     uri = 'nogame.love';
+  var arg = search.get('arg');
   if (arg) {
     try {
       arg = JSON.parse(arg);
