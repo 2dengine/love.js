@@ -459,13 +459,16 @@ SOFTWARE.
 
   var search = url.searchParams;
   var ops = {
-    version: search.get('v') || '11.5',
-    compat: search.get('c') != '0',
+    version: search.get('v'),
+    compat: search.get('c') == '1',
     nocache: search.get('n') == '1',
   };
   // ignore invalid version arguments
   if (ops.version != '11.5' && ops.version != '11.4' && ops.version != '11.3')
     ops.version = '11.5';
+  // fallback to compatibility mode
+  if (!search.has('c'))
+    ops.compat = (window.SharedArrayBuffer == null);
 
   var uri = search.get('g');
   if (uri == null)
