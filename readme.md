@@ -18,7 +18,7 @@ Header set Cross-Origin-Embedder-Policy "require-corp"
 ```
 Please note that WASM requires the "unsafe-eval" header which may create security vulnerabilities:
 ```
-Content-Security-Policy "script-src 'self' 'unsafe-eval
+Header set Content-Security-Policy "script-src 'self' 'unsafe-eval';"
 ```
 Please review your server configuration and do not set these headers unless you know what you are doing.
 The included .htaccess file attempts to set these headers automatically on Apache servers.
