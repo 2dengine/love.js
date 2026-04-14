@@ -58,7 +58,8 @@ love.event.push("quit", "reload")
 love.js is still a work-in-progress and has several known bugs.
 The games run slower compared to other platforms since love.js does not take advantage of LuaJIT.
 Certain games may fail to run or may crash on systems with limited memory.
-Rendering works quite well across browsers although WebGL shaders work differently compared to their desktop counterparts.
+Rendering works quite well across browsers although love.js may fail to run when hardware acceleration is unavailable.
+WebGL shaders work differently compared to their desktop counterparts.
 Modern web browsers enforce many limitations so you may encounter issues when:
 * Playing audio (prior to a user gesture)
 * Requesting fullscreen mode (prior to a user gesture)
