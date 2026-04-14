@@ -28,7 +28,48 @@ SOFTWARE.
 -- normalize.lua is a series of hacks which ensure that
 -- love.js behaves more closely to the downloadable version
 
+if os then
+  local cache = {}
+  os.execute = function(cmd)
+    if not love then
+      return
+    end
+    -- todo: system module is required
+    love.system = love.system or require('love.system')
+    -- evaluate the command
+    love.system.openURL('javascript:'..cmd)
+    
+    -- read back the output stream
+    for i = 1, 2^32 do
+      local line = io.read()
+      if not line then
+        break
+      end
+      cache[i] = line
+    end
+    local output = table.concat(cache, '\n')
+
+    -- clean up the cache
+    for i = #cache, 1, -1 do
+      cache[i] = nil
+    end
+
+    -- return the result
+    return output
+  end
+end
+
 local lfs = love.filesystem
+
+--[[
+-- hack that removes the leading slash from the identity string ("/love")
+local _lfs_getIdentity = lfs.getIdentity
+function lfs.getIdentity()
+  local ident = _lfs_getIdentity()
+  ident = ident:gsub("^/+", "")
+  return ident
+end
+]]
 
 local _lfs_getInfo = lfs.getInfo
 local _lfs_read = lfs.read
@@ -57,83 +98,4 @@ if reg then
     end
     return _File_open(file, ...)
   end
-end
-
--- todo: system module cannot be disabled from conf.lua
-love.system = love.system or require('love.system')
--- bare bones JSON encoding thanks to https://github.com/rxi/json.lua
-local escape = {
-  ["\\"]="\\",
-  ["\""]="\"",
-  ["\b"]="b",
-  ["\f"]="f",
-  ["\n"]="n",
-  ["\r"]="r",
-  ["\t"]="t",
-}
-local function encode(c)
-  return "\\"..(escape[c] or string.format("u%04x", c:byte()))
-end
-local function tojson(data)
-  local t = type(data)
-  if t == "table" then
-    local n = 0
-    for _ in pairs(data) do
-      n = n + 1
-    end
-    local list = {}
-    if #data == n then
-      for _, v in ipairs(data) do
-        v = tojson(v)
-        table.insert(list, v)
-      end
-      return '['..table.concat(list, ',')..']'
-    else
-      for k, v in pairs(data) do
-        v = tojson(v)
-        table.insert(list, string.format('%q:%s', k, v))
-      end
-      return '{'..table.concat(list, ',')..'}'
-    end
-  else
-    if t == 'string' then
-      return '"'..data:gsub('[%z\1-\31\\"]', encode)..'"'
-    else
-      return tostring(data)
-    end
-  end
-end
-
-function love.system.js(cmd, ops)
-  local sz = tojson(ops)
-  love.system.openURL('javascript:'..cmd..' '..sz)
-  --print('javascript:'..cmd..' '..sz)
-end
-
-local cache = {}
-local maxlines = 2^32
-local function input(n)
-  n = n or maxlines
-  for i = 1, n do
-    local line = io.read()
-    if not line then
-      break
-    end
-    cache[i] = line
-  end
-  local sz = table.concat(cache, '\n')
-  for i = #cache, 1, -1 do
-    cache[i] = nil
-  end
-  return sz
-end
-
-function love.system.getClipboardText()
-  love.system.js('clipboard')
-  return input(n)
-end
-
-function love.system.setClipboardText(text)
-  local ops = { text = tostring(text) }
-  love.system.js('clipboard', ops)
 end

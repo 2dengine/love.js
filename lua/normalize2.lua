@@ -32,7 +32,7 @@ if love.event then
   local _love_event_push = love.event.push
   function love.event.push(event, action, ...)
     if event == 'quit' and action == 'reload' then
-      love.system.js('reload')
+      love.js.eval('window.reload()')
       return
     end
     return _love_event_push(event, action, ...)
@@ -81,3 +81,68 @@ if love.audio then
   end
 end
 
+local cache = {}
+local maxlines = 2^32
+local function input(n)
+  n = n or maxlines
+  for i = 1, n do
+    local line = io.read()
+    if not line then
+      break
+    end
+    cache[i] = line
+  end
+  local sz = table.concat(cache, '\n')
+  for i = #cache, 1, -1 do
+    cache[i] = nil
+  end
+  return sz
+end
+
+function love.system.getClipboardText()
+  return love.js.eval([[
+(function() {
+  var clipboard = navigator.clipboard;
+  if (!clipboard)
+    return '';
+  if (clipboard.text !== undefined)
+    return clipboard.text;
+
+  function sync_clipboard() {
+    clipboard.readText()
+      .then(function (text) {
+        clipboard.permission = 'granted';
+        clipboard.text = text;
+      })
+      .catch(function (error) {
+        //console.log(error);
+      })
+      .finally(function() {
+        if (clipboard.permission == 'granted')
+          setTimeout(sync_clipboard, 10);
+      });
+  }
+
+  clipboard.permission = 'prompt';
+  clipboard.text = clipboard.text || '';
+  sync_clipboard();
+  return '';
+})();
+]]);
+end
+
+function love.system.setClipboardText(text)
+  local cmd = [[
+(function() {
+  var clipboard = navigator.clipboard;
+  if (!clipboard)
+    return;
+  clipboard.text = %q;
+  navigator.clipboard.writeText(clipboard.text)
+    .catch(function () {});
+  document.execCommand('copy');
+})();
+]]
+  cmd = string.format(cmd, text)
+  return love.js.eval(cmd)
+end

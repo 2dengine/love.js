@@ -195,182 +195,102 @@ SOFTWARE.
       }
     });
   }
+  
+  Player.script = function(uri, func) {
+    var s = document.createElement('script');
+    s.type = 'text/javascript';
+    s.src = uri;
+    s.async = true;
+    s.onload = func;
+    document.body.appendChild(s);
+  }
+
+  Player.execute = function(cmd) {
+    if (!cmd.startsWith('javascript:'))
+      return -1;
+    cmd = cmd.substring(11);
+    try {
+      var res = eval(cmd);
+      //window.output(res);
+      window._output = res;
+      return 1;
+    } catch (e) {
+      console.warn(e);
+    }
+    return 0;
+  }
 
   Player.runPkgs = function(uri, cache, arg, canvas, ops) {
     return new Promise(function (resolve, reject) {
-      ops.base = ops.version + '/' + ((ops.compat) ? 'compat' : 'release');
-/*
-      var prefetch = [ 'love.wasm', 'love.js', 'love.worker.js' ];
-      for (var i = 0; i < prefetch.length; i++) {
-        var file = prefetch[i];
-        var elink = document.createElement('link');
-        elink.rel = 'preload';
-        elink.href = ops.base+'/'+file;
-        elink.crossOrigin = 'anonymous';
-        elink.as = 'script';
-        elink.type = 'application/javascript';
-        if (file.endsWith('.wasm')) {
-          elink.as = 'fetch';
-          elink.type = 'application/wasm';
-        }
-        document.head.appendChild(elink);
-      }
-*/
-      //var pkg = 'game.love';
-      var Module = {};
+      var Module = window.Module || {};
 
       var data = cache[uri];
-      var mem = (navigator.deviceMemory || 1)*1e+9;
-      Module.INITIAL_MEMORY = Math.min(4*data.length + 2e+7, mem);
+      var memory = (navigator.deviceMemory || 1)*1e+9;
+      Module.INITIAL_MEMORY = Math.min(4*data.length + 2e+7, memory);
       Module.canvas = canvas;
-      Module.printErr = window.onerror;
-      Module.arguments = arg;
+      Module.warn = window.onerror;
+      Module.args = arg;
 
-      Module.runWithFS = function () {
-        // import packages
-        Module.FS_createPath('/', '/usr/local/share/lua/5.1', true, true);
+      // import packages
+      Module.prerun = function() {
+        Module.FS.mkdirTree('/usr/local/share/lua/5.1');
         for (var file in cache) {
-          var data = cache[file];
-          Module.addRunDependency('fp '+file);
+          var cfile = cache[file];
           if (file == uri) {
             // game
-            var ptr = Module.getMemory(data.length);
-            Module.HEAPU8.set(data, ptr);
-            Module.FS_createDataFile('/', arg[0], data, true, true, true);
+            //var ptr = Module.getMemory(cfile.length);
+            //Module.HEAPU8.set(cfile, ptr);
+            Module.FS.createDataFile('/', arg[0], cfile, true, true, true);
           } else {
-            // module
+            // modules
             var fn = file.split('/').pop();
-            Module.FS_createDataFile('/usr/local/share/lua/5.1', fn, cache[file], true, true, true);
+            Module.FS.createDataFile('/usr/local/share/lua/5.1', fn, cfile, true, true, true);
           }
-          Module.removeRunDependency('fp '+file);
-          Module.finishedDataFileDownloads ++;
         }
       };
 
-      if (Module.calledRun) {
-        Module.runWithFS();
-      } else {
-        // FS is not initialized yet, wait for it
-        if (!Module.preRun)
-          Module.preRun = [];
-        Module.preRun.push(Module.runWithFS);
+      Module.postrun = function() {
+        // hide the spinner
+        canvas.style.display = 'block';
+        canvas.focus();
+        spinner.className = '';
       }
-
+      
       if (window.Love === undefined) {
         // this operation initiates local storage
-        var s = document.createElement('script');
-        s.type = 'text/javascript';
-        s.src = ops.base + '/love.js';
-        s.async = true;
-        s.onload = function () {
+        Player.script(ops.version+'/love.js', function () {
           resolve(Module);
-        };
-        document.body.appendChild(s);
+        });
       } else {
-        window.Module.pauseMainLoop();
+        //Module.Browser.pauseMainLoop();
         resolve(Module);
       }
 
       window.Module = Module;
 
+      // capture commands
       if (Module._open)
         return;
       Module._open = window.open;
       window.open = function(url) {
-        if (Module.command(url))
+        if (Player.execute(url) !== -1)
           return;
-        //return Module._open(url);
-        return Module._open.apply(null, arguments);
+        return Module._open.apply(null, args);
       }
 
       // the prompt can send UTF-8 strings to Lua synchronously
-      var _prompt = null;
+      window._output = null;
+      //window.output = function(s) {
+      //  _output = s;
+      //}
+
       window.prompt = function(a) {
-        var tmp = _prompt;
-        _prompt = null;
-        return tmp;
-      }
-
-      // the following function sends binary data to Lua
-      Module.writeFile = function(path, data) {
-        if (!path || path == '.')
-          return;
-        // thanks to Nivas from stackoverflow.com/questions/3820381
-        var file = path;
-        var base = '/';
-        var offset = path.lastIndexOf('/');
-        if (offset >= 0) {
-          file = path.substring(offset + 1);
-          base = path.substring(0, offset);
-        }
-        Module.FS_createPath('/', base, true, true);
-        Module.FS_createDataFile(base, file, data, true, true, true);
-      }
-
-      Module.commands = {};
-
-      // clipboard support
-      var _clipboard = false;
-      function updateClipboard() {
-        // reading from the clipboard can only be done in a secure context
-        // and it doesn't work well in Mozilla-based browsers
-        navigator.clipboard.readText()
-          .then(function (text) {
-            _clipboard = text;
-          })
-          .catch(function (error) {})
-          .finally(function() {
-            setTimeout(function() {
-              updateClipboard();
-            }, 10);
-          });
-      }
-      Module.commands.clipboard = async function(ops) {
-        if (ops.text !== undefined) {
-          _clipboard = ops.text;
-          navigator.clipboard.writeText(ops.text)
-            .catch(function () {});
-          document.execCommand('copy');
-        } else {
-          if (_clipboard === false) {
-            _clipboard = '';
-            updateClipboard();
-          }
-          _prompt = _clipboard;
-        }
-      }
-
-      // package reloading
-      Module.commands.reload = function(ops) {
-        Player.deletePkgs()
-          .then(function () {
-            window.location.reload();
-          });
-      }
-
-      // execute command
-      var regex = /^([\w]+)(.*)/;
-      Module.command = function (cmd) {
-        if (!cmd.startsWith('javascript:'))
-          return;
-        cmd = cmd.substring(11);
-        var matches = regex.exec(cmd);
-        if (!matches[1])
-          return false;
-        var ops;
-        try {
-          ops = JSON.parse(matches[2]);
-        } catch (error) {};
-        ops = ops || {};
-        var func = Module.commands[matches[1]];
-        if (!func)
-          return false;
-        func(ops);
-        return true;
+        var tmp = window._output;
+        window._output = null;
+        return tmp; // UTF8ToString(tmp);
       }
 
     });
-
   };
 
   // DOM
@@ -400,15 +320,11 @@ SOFTWARE.
   var search = url.searchParams;
   var ops = {
     version: search.get('v'),
-    compat: search.get('c') == '1',
     nocache: search.get('n') == '1',
   };
   // ignore invalid version arguments
-  if (ops.version != '11.5' && ops.version != '11.4' && ops.version != '11.3')
+  if (ops.version != '11.5')
     ops.version = '11.5';
-  // fallback to compatibility mode
-  if (!search.has('c'))
-    ops.compat = (window.SharedArrayBuffer == null);
 
   var uri = search.get('g');
   if (uri == null)
@@ -425,37 +341,6 @@ SOFTWARE.
     }
   }
   
-  // Handling errors
-  window.onerror = function (msg) {
-    console.error(msg);
-    if (spinner.className != '') {
-      canvas.style.display = 'none';
-      spinner.className = 'error';
-    }
-  };
-
-  // Focus when running inside an iFrame
-  window.onload = window.focus.bind(window);
-  
-  // Handle touch and mouse input
-  window.onclick = function (e) {
-    window.focus();
-  };
-/*
-  // Disable scrolling while using the arrow keys
-  var codes = [37, 38, 39, 40, 13];
-  window.onkeydown = window.onkeyup = window.onkeypress = function (e) {
-    if (codes.indexOf(e.keyCode || e.which || 0) > -1)
-      e.preventDefault();
-  }
-*/
-  // Fixes a persistence bug when using the back and forward buttons
-  window.onpageshow = function (event) {
-    canvas.style.display = 'none';
-    if (event.persisted)
-      window.location.reload();
-  };
-  
   // Runs the requested package
   Player.runLove = function () {
     spinner.className = 'loading';
@@ -471,12 +356,6 @@ SOFTWARE.
         Player.runPkgs(uri, cache, varg, canvas, ops)
           .then(function (Module) {
             Love(Module);
-            Module.onRuntimeInitialized = function() {
-              // hide the spinner
-              canvas.style.display = 'block';
-              canvas.focus();
-              spinner.className = '';
-            }
           });
       })
       .catch(function (err) {
@@ -490,4 +369,45 @@ SOFTWARE.
   }
   
   Player.runLove();
+
+  // Handling errors
+  window.onerror = function (msg) {
+    console.error(msg);
+    if (spinner.className != '') {
+      canvas.style.display = 'none';
+      spinner.className = 'error';
+    }
+  };
+
+  // Focus when running inside an iFrame
+  window.onload = window.focus.bind(window);
+  
+  // Handle touch and mouse input
+  window.onclick = window.ontouchstart = function (e) {
+    window.focus();
+  };
+  
+  // Disable scrolling while using the arrow keys
+  var codes = [37, 38, 39, 40, 13];
+  window.onkeydown = window.onkeyup = window.onkeypress = function (e) {
+    if (codes.indexOf(e.keyCode || e.which || 0) > -1)
+      e.preventDefault();
+  }
+
+  // Fix persistence issues when navigating back and forth
+  window.onpageshow = function (event) {
+    canvas.style.display = 'none';
+    if (event.persisted) {
+      Player.runLove();
+      // todo: allow re-running
+      //Module.run(Module.args);
+    }
+  };
+  
+  // Tries to sync the file-system when navigating away
+  // This is not reliable, since async operations are not allowed at this point
+  window.onbeforeunload = function(event) {
+    // todo: love.event.exit when navigating away
+    Module.exit(0);
+  };
 })();
