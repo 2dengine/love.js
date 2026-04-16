@@ -271,11 +271,12 @@ SOFTWARE.
       // capture commands
       if (Module._open)
         return;
-      Module._open = window.open;
+      //Module._open = window.open;
+      Module._open = window.open.bind(window);
       window.open = function(url) {
         if (Player.execute(url) !== -1)
           return;
-        return Module._open.apply(null, args);
+        return Module._open(url);
       }
 
       // the prompt can send UTF-8 strings to Lua synchronously
