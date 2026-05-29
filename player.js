@@ -26,9 +26,36 @@ SOFTWARE.
 */
 
 (function() {
+  // DOM
+  var script = document.currentScript;
+  var canvas = document.getElementById('canvas');
+  if (!canvas) {
+    canvas = document.createElement('CANVAS');
+    canvas.id = 'canvas';
+    script.parentNode.insertBefore(canvas, script);
+  }
+  canvas.oncontextmenu = function () {
+    event.preventDefault();
+  }
+  
+  var spinner = document.getElementById('spinner');
+  if (!spinner) {
+    spinner = document.createElement('DIV');
+    spinner.id = 'spinner';
+    script.parentNode.after(spinner, script);
+  }
+  spinner.className = 'pending';
+
+  // Actual player object
   var Player = {};
   window.Player = Player;
-
+  
+  Player.version = '11.5';
+  Player.cache = true;
+  Player.arg = [];
+  Player.uri = 'nogame.love';
+  
+  // Opens the IndexedDB connection
   var indexedDB = window.indexedDB || window.mozIndexedDB || window.webkitIndexedDB || window.msIndexedDB;
   Player.openDB = function () {
     return new Promise(function (resolve, reject) {
@@ -64,6 +91,7 @@ SOFTWARE.
     });
   }
 
+  // Deletes a stored IndexedDB package
   Player.deletePkg = function (uri) {
     // Delete the store package from cache
     return new Promise(function (resolve, reject) {
@@ -84,6 +112,7 @@ SOFTWARE.
     });
   }
   
+  // Deletes all stored IndexedDB packages
   Player.deletePkgs = function () {
     return new Promise(function (resolve, reject) {
       var req = indexedDB.deleteDatabase('PACKAGES');
@@ -96,6 +125,7 @@ SOFTWARE.
     });
   }
   
+  // Stores binary data into an IndexedDB package
   Player.storePkg = function(uri, data) {
     return new Promise(function (resolve, reject) {
       Player.openDB()
@@ -115,6 +145,7 @@ SOFTWARE.
     });
   }
   
+  // Reads the cached IndexedDB package
   Player.readPkg = function (uri) {
     return new Promise(function (resolve, reject) {
       Player.openDB()
@@ -135,24 +166,25 @@ SOFTWARE.
     });
   }
 
-  Player.fetchPkg = function(uri, nocache, love) {
+  // Fetches the package
+  Player.requestPkg = function(uri) {
     return new Promise(function (resolve, reject) {
       var data;
       Player.readPkg(uri)
-        .then (function (cache) {
-          data = cache;
+        .then (function (raw) {
+          data = raw;
         })
         .catch (function(e) {
           console.warn(e);
         })
         .finally(function () {
-          if (data && !nocache) {
-            resolve(data);
+          if (data && Player.cache) {
+            resolve({ data: data, name: uri });
             return;
           }
           // Fetch the package remotely
           console.log('fetching:'+uri);
-          fetch(uri)
+          fetch(uri, { credentials: "same-origin" })
             .then(function (res) {
               if (!res.ok)
                 return reject('Could not fetch the love package');
@@ -160,7 +192,7 @@ SOFTWARE.
             })
             .then(function (data) {
               data = new Uint8Array(data);
-              if (love) {
+              if (uri.endsWith('.love') || uri.endsWith('.zip')) {
                 // Check if the header is a valid ZIP archive
                 var head = [80,75,3,4];
                 for (var i = 0; i < head.length; i++)
@@ -169,23 +201,25 @@ SOFTWARE.
               }
               // Cache remote package for subsequent requests
               Player.storePkg(uri, data);
-              resolve(data);
+              resolve({ data: data, name: uri });
             });
         });
     });
   }
-
-  Player.fetchPkgs = function(uri, nocache) {
+  
+  // Fetches all required packages
+  Player.requestPkgs = function(uri) {
     return new Promise(function (resolve, reject) {
       var list = [ uri ];
       list.push('lua/normalize1.lua');
       list.push('lua/normalize2.lua');
+      list.push('11.5/love.wasm');
       var loaded = 0;
       var cache = {};
-      for (let i = 0; i < list.length; i++) {
-        Player.fetchPkg(list[i], nocache, i == 0)
-          .then(function (raw) {
-            cache[list[i]] = raw;
+      for (var i = 0; i < list.length; i++) {
+        Player.requestPkg(list[i])
+          .then(function (pkg) {
+            cache[pkg.name] = pkg.data;
             loaded ++;
             if (list.length == loaded)
               resolve(cache);
@@ -197,6 +231,7 @@ SOFTWARE.
     });
   }
   
+  // Appends and loads a script element
   Player.script = function(uri, func) {
     var s = document.createElement('script');
     s.type = 'text/javascript';
@@ -206,172 +241,109 @@ SOFTWARE.
     document.body.appendChild(s);
   }
 
-  Player.execute = function(cmd) {
-    if (!cmd.startsWith('javascript:'))
-      return -1;
-    cmd = cmd.substring(11);
-    try {
-      var res = eval(cmd);
-      //window.output(res);
-      window._output = res;
-      return 1;
-    } catch (e) {
-      console.warn(e);
-    }
-    return 0;
-  }
-
-  Player.runPkgs = function(uri, cache, arg, canvas, ops) {
-    return new Promise(function (resolve, reject) {
-      var Module = window.Module || {};
-
-      var data = cache[uri];
-      var memory = (navigator.deviceMemory || 1)*1e+9;
-      Module.INITIAL_MEMORY = Math.min(4*data.length + 2e+7, memory);
-      Module.canvas = canvas;
-      Module.warn = window.onerror;
-      Module.args = arg;
-
-      // import packages
-      Module.prerun = function() {
-        Module.FS.mkdirTree('/usr/local/share/lua/5.1');
-        for (var file in cache) {
-          var cfile = cache[file];
-          if (file == uri) {
-            // game
-            //var ptr = Module.getMemory(cfile.length);
-            //Module.HEAPU8.set(cfile, ptr);
-            Module.FS.createDataFile('/', arg[0], cfile, true, true, true);
-          } else {
-            // modules
-            var fn = file.split('/').pop();
-            Module.FS.createDataFile('/usr/local/share/lua/5.1', fn, cfile, true, true, true);
-          }
-        }
-      };
-
-      Module.postrun = function() {
-        // hide the spinner
-        canvas.style.display = 'block';
-        canvas.focus();
-        spinner.className = '';
-      }
-      
-      if (window.Love === undefined) {
-        // this operation initiates local storage
-        Player.script(ops.version+'/love.js', function () {
-          resolve(Module);
-        });
-      } else {
-        //Module.Browser.pauseMainLoop();
-        resolve(Module);
-      }
-
-      window.Module = Module;
-
-      // capture commands
-      if (Module._open)
-        return;
-      //Module._open = window.open;
-      Module._open = window.open.bind(window);
-      window.open = function(url) {
-        if (Player.execute(url) !== -1)
-          return;
-        return Module._open(url);
-      }
-
-      // the prompt can send UTF-8 strings to Lua synchronously
-      window._output = null;
-      //window.output = function(s) {
-      //  _output = s;
-      //}
-
-      window.prompt = function(a) {
-        var tmp = window._output;
-        window._output = null;
-        return tmp; // UTF8ToString(tmp);
-      }
-
-    });
-  };
-
-  // DOM
-  var script = document.currentScript;
-  var canvas = document.getElementById('canvas');
-  if (!canvas) {
-    canvas = document.createElement('CANVAS');
-    canvas.id = 'canvas';
-    script.parentNode.insertBefore(canvas, script);
-  }
-  canvas.oncontextmenu = function () {
-    event.preventDefault();
-  }
-  var spinner = document.getElementById('spinner');
-  if (!spinner) {
-    spinner = document.createElement('DIV');
-    spinner.id = 'spinner';
-    script.parentNode.after(spinner, script);
-  }
-  spinner.className = 'pending';
-  
-  // Parse arguments from the URL address
-  var url = new URL(script.src);
-  if (!url.searchParams.has('g'))
-    url = new URL(window.location.href);
-
-  var search = url.searchParams;
-  var ops = {
-    version: search.get('v'),
-    nocache: search.get('n') == '1',
-  };
-  // ignore invalid version arguments
-  if (ops.version != '11.5')
-    ops.version = '11.5';
-
-  var uri = search.get('g');
-  if (uri == null)
-    uri = 'nogame.love';
-  var arg = search.get('arg');
-  if (arg) {
-    try {
-      arg = JSON.parse(arg);
-      if (!Array.isArray(arg))
-        arg = [arg];
-    } catch (error) {
-      arg = null;
-      console.log(error);
-    }
-  }
-  
   // Runs the requested package
-  Player.runLove = function () {
+  Player.start = function (uri, arg) {    
     spinner.className = 'loading';
-    Player.fetchPkgs(uri, ops.nocache)
-      .then(function (cache) {
-        // prepare arguments
-        var pkg = uri.substring(uri.lastIndexOf('/') + 1);
-        var varg = [pkg];
-        if (arg && Array.isArray(arg))
-          for (var i = 0; i < arg.length; i++)
-            varg.push(String(arg[i]));
+    uri = uri || Player.uri;
+    arg = arg || Player.arg;
+    Player.uri = uri;
+    Player.arg = arg;
 
-        Player.runPkgs(uri, cache, varg, canvas, ops)
-          .then(function (Module) {
-            Love(Module);
+    // prepare arguments
+    var vargs = arg.slice();
+    var pkg = uri.substring(uri.lastIndexOf('/') + 1);
+    vargs.unshift(pkg);
+    
+    Player.requestPkgs(uri)
+      .then(function (cache) {
+        var Module = window.Module || {};
+        window.Module = Module;
+        
+        if (Module.exit)
+          Module.exit(0);
+
+        // allocate memory based on the system and package size
+        var memory = (navigator.deviceMemory || 1)*1e+9;
+        Module.INITIAL_MEMORY = Math.min(4*cache[uri].length + 2e+7, memory);
+        Module.canvas = canvas;
+        Module.warn = window.onerror;
+        Module.args = vargs;
+        Module.cache = cache;
+
+        // import packages
+        Module.prerun = function() {
+          Module.FS.mkdirTree('/usr/local/share/lua/5.1');
+          for (var file in cache) {
+            var cfile = cache[file];
+            if (file == uri) {
+              // game
+              //var ptr = Module.getMemory(cfile.length);
+              //Module.HEAPU8.set(cfile, ptr);
+              Module.FS.createDataFile('/', vargs[0], cfile, true, true, true);
+            } else {
+              // modules
+              var fn = file.split('/').pop();
+              Module.FS.createDataFile('/usr/local/share/lua/5.1', fn, cfile, true, true, true);
+            }
+          }
+        };
+
+        Module.postrun = function() {
+          // hide the spinner
+          canvas.style.display = 'block';
+          canvas.focus();
+          spinner.className = '';
+        }
+        
+        if (window.Love === undefined) {
+          // this operation initiates local storage
+          Player.script(Player.version+'/love.js', function () {
+            window.Love(Module);
           });
+        } else {
+          //Module.Browser.pauseMainLoop();
+          window.Love(Module);
+        }
+
+        // capture commands
+        if (Module._open)
+          return;
+        //Module._open = window.open;
+        Module._open = window.open.bind(window);
+        window.open = function(url) {
+          // evaluate the JavaScript string
+          if (url.startsWith('javascript:')) {
+            url = url.substring(11);
+            try {
+              window._output = eval(url);
+            } catch (e) {
+              console.warn(e);
+            }
+            return;
+          }
+          return Module._open(url);
+        }
+
+        // the prompt can send UTF-8 strings to Lua synchronously
+        window._output = null;
+        //window.output = function(s) {
+        //  _output = s;
+        //}
+
+        window.prompt = function(a) {
+          var tmp = window._output;
+          window._output = null;
+          return tmp; // UTF8ToString(tmp);
+        }
       })
       .catch(function (err) {
         console.log(err);
-        if (uri != 'nogame.love') {
-          uri = 'nogame.love';
-          arg = null;
-          Player.runLove();
-        }
+        if (uri != 'nogame.love')
+          Player.start('nogame.love', []);
       })
   }
   
-  Player.runLove();
-
+  // Event handling
   // Handling errors
   window.onerror = function (msg) {
     console.error(msg);
@@ -399,17 +371,56 @@ SOFTWARE.
   // Fix persistence issues when navigating back and forth
   window.onpageshow = function (event) {
     canvas.style.display = 'none';
-    if (event.persisted) {
-      Player.runLove();
-      // todo: allow re-running
-      //Module.run(Module.args);
-    }
+    if (event.persisted)
+      window.location.reload();
+      //Player.start();
   };
-  
+
   // Tries to sync the file-system when navigating away
   // This is not reliable, since async operations are not allowed at this point
   window.onbeforeunload = function(event) {
     // todo: love.event.exit when navigating away
-    Module.exit(0);
+    if (window.Module && window.Module.exit)
+      window.Module.exit(0);
   };
+
+  // Parse arguments from the URL address
+  var url = new URL(script.src);
+  if (!url.searchParams.has('g'))
+    url = new URL(window.location.href);
+
+  var search = url.searchParams;
+  Player.version = search.get('v');
+  if (search.get('n') == '1') {
+    console.warn('disabling cache');
+    Player.cache = false;
+  }
+  // ignore invalid version arguments
+  if (Player.version != '11.5')
+    Player.version = '11.5';
+  
+  var uri = search.get('g');
+  if (uri == null)
+    uri = 'nogame.love';
+  
+  var arg = search.get('arg');
+  if (arg) {
+    try {
+      arg = JSON.parse(arg);
+      if (!Array.isArray(arg)) {
+        arg = [arg];
+        for (var i = 0; i < arg.length; i++)
+          arg[i] = String(arg[i]);
+      }
+    } catch (error) {
+      console.warn(error);
+    }
+  }
+  if (!Array.isArray(arg))
+    arg = [];
+  
+  if (uri == 'norun')
+    return;
+  
+  Player.start(uri, arg);
 })();
