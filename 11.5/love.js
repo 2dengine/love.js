@@ -1,3 +1,30 @@
+/*
+This file is part of "love.js" by 2dengine.
+https://2dengine.com/doc/lovejs.html
+
+MIT License
+
+Copyright (c) 2022 2dengine LLC
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+*/
+
 var Love = (function() {
   var script = '';
   if (typeof document !== 'undefined' && document.currentScript)
@@ -18,7 +45,14 @@ var Love = (function() {
     "_": "./this.program"
   };
 
-  fetchwasm = function(library, callback) {
+  fetchwasm = function(callback) {
+    var Module = window.Module;
+    if (Module && Module.cache) {
+      var buffer = Module.cache['11.5/love.wasm'];
+      callback(buffer);
+      return;
+    }
+    
     fetch(wasm_path, { credentials: "same-origin" })
       .then(function(res) {
         if (!res.ok)
@@ -26,13 +60,7 @@ var Love = (function() {
         return res.arrayBuffer();
       })
       .then(function(buffer) {
-        return WebAssembly.instantiate(buffer, {
-          "env": library,
-          "wasi_snapshot_preview1": library
-        })
-      })
-      .then(function(result) {
-        callback(result.instance.exports);
+        callback(buffer);
       })
       .catch(function(error) {
         throw new Error(error);
@@ -5186,8 +5214,10 @@ var Love = (function() {
             element = document;
           else if (target == 2)
             element = window
-          else if (target > 2)
-            element = document.querySelector(UTF8ToString(target));
+          else if (target > 2) {
+            var utf8 = UTF8ToString(target);
+            element = document.querySelector(utf8);
+          }
           return element;
         },
         getNodeName: function(target) {
@@ -12667,90 +12697,98 @@ var Love = (function() {
           };
         }
       }
-      
-      
-      fetchwasm(asmLibraryArg, function(instance) {
-        Module.asm = instance;
-        //Module["getMemory"] = getMemory;
 
-        Module["ExitStatus"] = function (status) {
-          this.name = "ExitStatus";
-          this.message = "Program terminated with exit(" + status + ")";
-          this.status = status
-        }
-        
-        Module.run = function(args) {
-          args = args || [];
-          Module.done = false;
+      fetchwasm(function(buffer) {
+        WebAssembly.instantiate(buffer, {
+          "env": asmLibraryArg,
+          "wasi_snapshot_preview1": asmLibraryArg,
+        })
+        .then(function(res) {
+          var instance = res.instance.exports;
           
-          Module.asm.__wasm_call_ctors()
-          readyPromiseResolve(Module);
+          Module.asm = instance;
+          //Module["getMemory"] = getMemory;
 
-          if (typeof Module.postrun == 'function')
-            Module.postrun();
-
-          try {
-            // call main
-            var argc = args.length + 1;
-            var argv = stackAlloc((argc + 1) * 4);
-            HEAP32[argv >> 2] = allocateUTF8OnStack(Module.env['_']);
-            for (var i = 1; i < argc; i++) {
-              HEAP32[(argv >> 2) + i] = allocateUTF8OnStack(args[i - 1])
-            }
-            HEAP32[(argv >> 2) + argc] = 0;
-            
-            var ret = Module.asm.main(argc, argv);
-            Module.exit(ret, true)
-          } catch (e) {
-            if (e instanceof Module.ExitStatus) {
-              return
-            } else if (e == "unwind") {
-              //Module.noexitruntime = true;
-              return
-            } else {
-              var toLog = e;
-              if (e && typeof e === "object" && e.stack) {
-                toLog = [e, e.stack]
-              }
-              Module.warn("exception thrown: " + toLog);
-              //Module.quit(1, e)
-              throw e;
-            }
+          Module["ExitStatus"] = function (status) {
+            this.name = "ExitStatus";
+            this.message = "Program terminated with exit(" + status + ")";
+            this.status = status
           }
-          /*
-          var ret = Module.asm.main(argc, argv);
-          Module.exit(ret)
-          */
-        }
- 
-        //Module.noexitruntime = true;
-        Module.exit = function(status) {
-          if (status === null)
-            status = 0;
-          if (Module.done)
-            return;
-          Module.done = true;
+          
+          Module.run = function(args) {
+            args = args || [];
+            Module.done = false;
+            
+            Module.asm.__wasm_call_ctors()
+            readyPromiseResolve(Module);
 
-          // try to sync any pending file-system changes
-          Module.FS.syncfs(false, function(err) {
+            if (typeof Module.postrun == 'function')
+              Module.postrun();
+
+            try {
+              // call main
+              var argc = args.length + 1;
+              var argv = stackAlloc((argc + 1) * 4);
+              HEAP32[argv >> 2] = allocateUTF8OnStack(Module.env['_']);
+              for (var i = 1; i < argc; i++) {
+                HEAP32[(argv >> 2) + i] = allocateUTF8OnStack(args[i - 1])
+              }
+              HEAP32[(argv >> 2) + argc] = 0;
+              
+              var ret = Module.asm.main(argc, argv);
+              Module.exit(ret, true)
+            } catch (e) {
+              if (e instanceof Module.ExitStatus) {
+                return
+              } else if (e == "unwind") {
+                //Module.noexitruntime = true;
+                return
+              } else {
+                var toLog = e;
+                if (e && typeof e === "object" && e.stack) {
+                  toLog = [e, e.stack]
+                }
+                Module.warn("exception thrown: " + toLog);
+                //Module.quit(1, e)
+                throw e;
+              }
+            }
+            /*
+            var ret = Module.asm.main(argc, argv);
+            Module.exit(ret)
+            */
+          }
+   
+          //Module.noexitruntime = true;
+          Module.exit = function(status) {
+            if (status === null)
+              status = 0;
+            if (Module.done)
+              return;
+            Module.done = true;
+
+            // try to sync any pending file-system changes
+            Module.FS.syncfs(false, function(err) {
+              if (err)
+                Module.warn(err);
+              // disable the main loop
+              _emscripten_cancel_main_loop();
+
+              if (Module["onexit"])
+                Module["onexit"](status)
+            });
+          }
+
+          if (typeof Module.prerun == "function")
+            Module.prerun();
+          
+          FS.syncfs(true, function(err) {
             if (err)
               Module.warn(err);
-            // disable the main loop
-            _emscripten_cancel_main_loop();
-
-            if (Module["onexit"])
-              Module["onexit"](status)
+            Module.run(Module.args);
           });
-        }
-
-        if (typeof Module.prerun == "function")
-          Module.prerun();
-        
-        FS.syncfs(true, function(err) {
-          if (err)
-            Module.warn(err);
-          Module.run(Module.args);
-        });
+        })
+      
       });
 
       //return Love.ready
