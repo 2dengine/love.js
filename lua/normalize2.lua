@@ -56,7 +56,9 @@ if love.audio then
     -- track currently playing
     for i = 1, select("#", ...) do
       local source = select(i, ...)
-      playing[source] = true
+      if source ~= nil then
+        playing[source] = true
+      end
     end
     return _love_audio_play(...)
   end

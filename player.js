@@ -252,8 +252,9 @@ SOFTWARE.
     // prepare arguments
     var vargs = arg.slice();
     var pkg = uri.substring(uri.lastIndexOf('/') + 1);
+    //pkg = pkg.split('.').shift();
     vargs.unshift(pkg);
-    
+
     Player.requestPkgs(uri)
       .then(function (cache) {
         var Module = window.Module || {};
@@ -277,7 +278,10 @@ SOFTWARE.
             var cfile = cache[file];
             if (file == uri) {
               // game
-              //var ptr = Module.getMemory(cfile.length);
+              // Copy the entire loaded file into a spot in the heap (todo?)
+              // Files will refer to slices in that. They cannot be freed though
+              //var ptr = Module.malloc(cfile.length);
+              //var ptr = Module.dynamicAlloc(cfile.length);
               //Module.HEAPU8.set(cfile, ptr);
               Module.FS.createDataFile('/', vargs[0], cfile, true, true, true);
             } else {

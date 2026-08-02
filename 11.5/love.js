@@ -42,7 +42,7 @@ var Love = (function() {
     "PWD": "/",
     "HOME": "/home/web_user",
     "LANG": lang,
-    "_": "./this.program"
+    "_": "./this.program",
   };
 
   fetchwasm = function(callback) {
@@ -80,7 +80,7 @@ var Love = (function() {
           Module.env[k] = environment[k];
       }
 
-      //var thisProgram = Module.env['_'];
+      //var thisProgram = Module.env["_"];
 
       Module.print = console.log.bind(console);
       Module.warn = console.warn.bind(console);
@@ -257,14 +257,7 @@ var Love = (function() {
         }
         return ret
       }
-
-/*
-      function getMemory(size) {
-        if (!Module.runtimeInitialized)
-          return dynamicAlloc(size);
-        return _malloc(size)
-      }
-      */
+      
       var UTF8Decoder = typeof TextDecoder !== "undefined" ? new TextDecoder("utf8") : undefined;
 
       function UTF8ArrayToString(heap, idx, maxBytesToRead) {
@@ -1959,7 +1952,7 @@ var Love = (function() {
         }
       };
       
-      // Yet another filesystem object
+      // Yet another filesystem wrapper
       var FS = {
         root: null,
         mounts: [],
@@ -2165,9 +2158,8 @@ var Love = (function() {
           return perms
         },
         nodePermissions: function(node, perms) {
-          if (FS.ignorePermissions) {
-            return 0
-          }
+          if (FS.ignorePermissions)
+            return 0;
           if (perms.indexOf("r") !== -1 && !(node.mode & 292)) {
             return 2
           } else if (perms.indexOf("w") !== -1 && !(node.mode & 146)) {
@@ -3065,14 +3057,39 @@ var Love = (function() {
           }
           FS.currentPath = lookup.path
         },
-        createDefaultDirectories: function() {
-          //FS.mkdir("/tmp");
+        init: function() {
+          if (FS.initialized)
+            return;
+          FS.initialized = true;
+          //FS.ensureErrnoError();
+          
+          // error handling
+          FS.ErrnoError = function (errno, node) {
+            this.node = node;
+            this.setErrno = function(errno) {
+              this.errno = errno
+            };
+            this.setErrno(errno);
+            this.message = "FS error"
+          };
+          FS.ErrnoError.prototype = new Error;
+          FS.ErrnoError.prototype.constructor = FS.ErrnoError;
+          [44].forEach(function(code) {
+            FS.genericErrors[code] = new FS.ErrnoError(code);
+            FS.genericErrors[code].stack = "<generic error, no stack>"
+          })
+          
+          FS.nameTable = new Array(4096);
+          FS.mount(MEMFS, {}, "/");
+
+          // create default directories
+          FS.mkdir("/tmp");
           //FS.mkdirTree(environment["TEMP"]);
           // create home directory
-          //FS.mkdir("/home");
           FS.mkdirTree(Module.env["HOME"]);
-        },
-        createDefaultDevices: function() {
+          //FS.mkdirTree(Module.env["PWD"]);
+          
+          // create default devices
           FS.mkdir("/dev");
           FS.registerDevice(FS.makedev(1, 3), {
             read: function() {
@@ -3105,8 +3122,8 @@ var Love = (function() {
           //FS.mkdir("/dev/shm");
           //FS.mkdir("/dev/shm/tmp")
           FS.mkdirTree("/dev/shm/tmp");
-        },
-        createSpecialDirectories: function() {
+          
+          // create special directories
           //FS.mkdir("/proc");
           //FS.mkdir("/proc/self");
           //FS.mkdir("/proc/self/fd");
@@ -3136,66 +3153,15 @@ var Love = (function() {
               };
               return node
             }
-          }, {}, "/proc/self/fd")
-        },
-        createStandardStreams: function() {
-          if (Module["stdin"]) {
-            FS.createDevice("/dev", "stdin", Module["stdin"])
-          } else {
-            FS.symlink("/dev/tty", "/dev/stdin")
-          }
-          if (Module["stdout"]) {
-            FS.createDevice("/dev", "stdout", null, Module["stdout"])
-          } else {
-            FS.symlink("/dev/tty", "/dev/stdout")
-          }
-          if (Module["stderr"]) {
-            FS.createDevice("/dev", "stderr", null, Module["stderr"])
-          } else {
-            FS.symlink("/dev/tty1", "/dev/stderr")
-          }
-          var stdin = FS.open("/dev/stdin", "r");
-          var stdout = FS.open("/dev/stdout", "w");
-          var stderr = FS.open("/dev/stderr", "w")
-        },
-        ensureErrnoError: function() {
-          if (FS.ErrnoError) return;
-          FS.ErrnoError = function ErrnoError(errno, node) {
-            this.node = node;
-            this.setErrno = function(errno) {
-              this.errno = errno
-            };
-            this.setErrno(errno);
-            this.message = "FS error"
-          };
-          FS.ErrnoError.prototype = new Error;
-          FS.ErrnoError.prototype.constructor = FS.ErrnoError;
-          [44].forEach(function(code) {
-            FS.genericErrors[code] = new FS.ErrnoError(code);
-            FS.genericErrors[code].stack = "<generic error, no stack>"
-          })
-        },
-        staticInit: function() {
-          FS.ensureErrnoError();
-          FS.nameTable = new Array(4096);
-          FS.mount(MEMFS, {}, "/");
-          FS.createDefaultDirectories();
-          FS.createDefaultDevices();
-          FS.createSpecialDirectories();
-          FS.filesystems = {
-            "MEMFS": MEMFS,
-            "IDBFS": IDBFS
-          }
-        },
-        init: function(input, output, error) {
-          if (FS.initialized)
-            return;
-          FS.initialized = true;
-          FS.ensureErrnoError();
-          Module["stdin"] = input || Module["stdin"];
-          Module["stdout"] = output || Module["stdout"];
-          Module["stderr"] = error || Module["stderr"];
-          FS.createStandardStreams()
+          }, {}, "/proc/self/fd");
+
+          // create standard streams
+          FS.symlink("/dev/tty", "/dev/stdin");
+          FS.symlink("/dev/tty", "/dev/stdout");
+          FS.symlink("/dev/tty1", "/dev/stderr");
+          FS.open("/dev/stdin", "r");
+          FS.open("/dev/stdout", "w");
+          FS.open("/dev/stderr", "w");
         },
         quit: function() {
           if (!FS.initialized)
@@ -5400,81 +5366,6 @@ var Love = (function() {
           canvasResolutionScaleMode: 1,
           scaleMode: 0,
         },
-/*
-        
-        updateCanvas: function(target) {
-          var size = Browser.getCanvasSize(target);
-          var strategy = Browser.fullscreen_strategy || Browser.default_strategy;
-          if (target == Browser.getFullscreenElement()) {
-            // we are going in full-screen mode
-
-            if (strategy.canvasResolutionScaleMode != 0 || strategy.scaleMode != 0) {
-              // store window dimensions, if we haven't already
-              if (!Browser.windowed_mode) {
-                var style = target.style;
-                Browser.windowed_mode = {
-                  size: size,
-                  style: {
-                    'width': style.width,
-                    'height': style.height,
-                    'paddingLeft': style.paddingLeft,
-                    'paddingRight': style.paddingRight,
-                    'paddingTop': style.paddingTop,
-                    'paddingBottom': style.paddingBottom,
-                    'imageRendering': style.imageRendering
-                  },
-                  strategy: strategy,
-                };
-              }
-              
-              if (strategy.filteringMode == 1) {
-                var fallbacks = [
-                  "pixelated",
-                  "-moz-crisp-edges", "-o-crisp-edges", "crisp-edges",
-                  "-webkit-optimize-contrast", "optimize-contrast",
-                  //"optimizeSpeed"
-                ];
-                for (var i = 0; i < fallbacks.length; i++) {
-                  var value = fallbacks[i];
-                  target.style.imageRendering = value;
-                  if (target.style.imageRendering === value)
-                    break;
-                }
-              }
-              // factor-in the DPI
-              var width = (strategy.softFullscreen) ? innerWidth : screen.width;
-              var height = (strategy.softFullscreen) ? innerHeight : screen.height;
-              if (strategy.canvasResolutionScaleMode != 0) {
-                var dpi = strategy.canvasResolutionScaleMode == 2 ? devicePixelRatio : 1;
-                width = width * dpi | 0;
-                height = height * dpi | 0;
-              }
-
-              Browser.setCanvasSize(target, width, height);
-            }
-
-          } else {
-            // we are in windowed mode
-            Browser.fullscreen_strategy = null;
-            var mode = Browser.windowed_mode;
-            if (mode) {
-              Browser.windowed_mode = null;
-              // revert styling
-              for (let k in mode.style)
-                target.style[k] = mode.style[k];
-              var width = mode.size[0];
-              var height = mode.size[1];
-              
-              // trigger the "resize" callback?
-              //var strategy = mode.strategy;
-              if (strategy && strategy.canvasResizedCallback)
-                Module.asm.dynCall_iiii(strategy.canvasResizedCallback, 37, 0, strategy.canvasResizedCallbackUserData);
-              
-              Browser.setCanvasSize(target, width, height);
-            }
-          }
-        },
-*/
 
         resizeForWindowed: function(target) {
           var mode = Browser.windowed_mode;
@@ -5483,7 +5374,7 @@ var Love = (function() {
           Browser.windowed_mode = null;
 
           // revert styling
-          for (let k in mode.style)
+          for (var k in mode.style)
             target.style[k] = mode.style[k];
         
           var width = mode.size[0];
@@ -12241,19 +12132,22 @@ var Love = (function() {
       });
 
       FS.FSNode = FSNode;
-      FS.staticInit();
+      //FS.staticInit();
       FS.init();
       TTY.init(); // does nothing
       SOCKFS.root = FS.mount(SOCKFS, {}, null);
       FS.ignorePermissions = false;
 
-      var unfused = Module.env['HOME']+"/love"
-      FS.mkdir(unfused);
-      FS.mount(IDBFS, {}, unfused);
-  
+      // mount the virtual save directory stored as an indexed database
+      FS.mkdirTree(environment['HOME']);
+      FS.mount(IDBFS, {}, environment['HOME']);
+      // todo: io.open's current working directory is incorrect at this point?
+      //FS.chdir(Module.env['PWD']);
+      //FS.chdir('/love.php');
+
       Module.FS = FS;
       Module.Browser = Browser;
-      
+
       var GLctx;
       for (var i = 0; i < 32; ++i) tempFixedLengthArray.push(new Array(i));
       var miniTempWebGLFloatBuffersStorage = new Float32Array(288);
@@ -12679,23 +12573,25 @@ var Love = (function() {
 
       function invoke() {}
       var convert = {};
-      for (let k in asmLibraryArg) {
-        var v = asmLibraryArg[k];
-        if (v == invoke) {
-          convert[k] = 'dynCall_'+k.substring(7);
-          asmLibraryArg[k] = function() {
-            var func = convert[k];
-            var sp = stackSave();
-            try {
-              return Module.asm[func].apply(null, arguments)
-            } catch (e) {
-              stackRestore(sp);
-              if (e !== e + 0 && e !== "longjmp")
-                throw e;
-              _setThrew(1, 0)
-            }
-          };
-        }
+      for (var w in asmLibraryArg) {
+        (function (k) {
+          var v = asmLibraryArg[k];
+          if (v == invoke) {
+            convert[k] = 'dynCall_'+k.substring(7);
+            asmLibraryArg[k] = function() {
+              var func = convert[k];
+              var sp = stackSave();
+              try {
+                return Module.asm[func].apply(null, arguments)
+              } catch (e) {
+                stackRestore(sp);
+                if (e !== e + 0 && e !== "longjmp")
+                  throw e;
+                _setThrew(1, 0)
+              }
+            };
+          }
+        })(w);
       }
 
       fetchwasm(function(buffer) {
@@ -12707,7 +12603,16 @@ var Love = (function() {
           var instance = res.instance.exports;
           
           Module.asm = instance;
-          //Module["getMemory"] = getMemory;
+          
+          Module.dynamicAlloc = dynamicAlloc;
+          Module.malloc = _malloc;
+          /*
+          Module.getMemory = function(size) {
+            if (!Module.runtimeInitialized)
+              return dynamicAlloc(size);
+            return _malloc(size)
+          }
+          */
 
           Module["ExitStatus"] = function (status) {
             this.name = "ExitStatus";
@@ -12718,23 +12623,23 @@ var Love = (function() {
           Module.run = function(args) {
             args = args || [];
             Module.done = false;
-            
-            Module.asm.__wasm_call_ctors()
+
+            Module.asm.__wasm_call_ctors();
             readyPromiseResolve(Module);
 
             if (typeof Module.postrun == 'function')
               Module.postrun();
 
             try {
-              // call main
+              // push the arguments on the stack
               var argc = args.length + 1;
-              var argv = stackAlloc((argc + 1) * 4);
-              HEAP32[argv >> 2] = allocateUTF8OnStack(Module.env['_']);
-              for (var i = 1; i < argc; i++) {
-                HEAP32[(argv >> 2) + i] = allocateUTF8OnStack(args[i - 1])
-              }
+              var argv = stackAlloc((argc + 1)*4);
+              HEAP32[argv >> 2] = allocateUTF8OnStack(Module.env["_"]);
+              for (var i = 1; i < argc; i++)
+                HEAP32[(argv >> 2) + i] = allocateUTF8OnStack(args[i - 1]);
               HEAP32[(argv >> 2) + argc] = 0;
               
+              // call main
               var ret = Module.asm.main(argc, argv);
               Module.exit(ret, true)
             } catch (e) {
@@ -12766,15 +12671,13 @@ var Love = (function() {
             if (Module.done)
               return;
             Module.done = true;
-
             // try to sync any pending file-system changes
             Module.FS.syncfs(false, function(err) {
               if (err)
                 Module.warn(err);
               // disable the main loop
               _emscripten_cancel_main_loop();
-
-              if (Module["onexit"])
+              if (typeof Module["onexit"] == 'function')
                 Module["onexit"](status)
             });
           }
