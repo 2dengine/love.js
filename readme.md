@@ -87,3 +87,5 @@ If your love.js game collects or processes personal information, you need to inc
 [print](https://github.com/MrcSnm/Love.js-Api-Player) technique by Marcelo Silva Nascimento Mancini (MIT License)
 
 [io.read](https://github.com/HamdyElzanqali/love-with-js) technique by Hamdy Elzanqali
+
+Please support [2dengine](https://2dengine.com) so we can release more free software in the future.
