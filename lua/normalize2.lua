@@ -1,6 +1,6 @@
 --[[
 This file is part of "love.js" by 2dengine.
-https://2dengine.com/doc/lovejs.html
+https://2dengine.com/
 
 MIT License
 
@@ -25,7 +25,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 
--- normalizem.lua is a series of hacks which ensure that
+-- normalize2.lua is a series of hacks which ensure that
 -- any optional love.js modules behave as expected
 
 if love.event then
@@ -107,49 +107,38 @@ local function input(n)
 end
 
 function love.system.getClipboardText()
-  return love.js.eval([[
-(function() {
-  var clipboard = navigator.clipboard;
-  if (!clipboard)
-    return '';
-  if (clipboard.text !== undefined)
-    return clipboard.text;
-
-  function sync_clipboard() {
-    clipboard.readText()
-      .then(function (text) {
-        clipboard.permission = 'granted';
-        clipboard.text = text;
-      })
-      .catch(function (error) {
-        //console.log(error);
-      })
-      .finally(function() {
-        if (clipboard.permission == 'granted')
-          setTimeout(sync_clipboard, 10);
-      });
-  }
-
-  clipboard.permission = 'prompt';
-  clipboard.text = clipboard.text || '';
-  sync_clipboard();
-  return '';
-})();
-]]);
+  return love.js.eval('window.Module.Browser.getClipboard();');
 end
 
 function love.system.setClipboardText(text)
-  local cmd = [[
-(function() {
-  var clipboard = navigator.clipboard;
-  if (!clipboard)
-    return;
-  clipboard.text = %q;
-  navigator.clipboard.writeText(clipboard.text)
-    .catch(function () {});
-  document.execCommand('copy');
-})();
-]]
-  cmd = string.format(cmd, text)
-  return love.js.eval(cmd)
+  return love.js.eval('window.Module.Browser.setClipboard();')
+end
+
+if love.keyboard then
+  local textinput = false
+  local _love_keyboard_setTextInput = love.keyboard.setTextInput
+  function love.keyboard.setTextInput(enabled)
+    local on = not not enabled
+    local cmd = string.format('window.Module.Browser.setInput(%s);', tostring(on))
+    love.js.eval(cmd)
+    textinput = on
+    return _love_keyboard_setTextInput(enabled)
+  end
+  
+  local _love_keyboard_hasTextInput = love.keyboard.hasTextInput
+  function love.keyboard.hasTextInput()
+    if textinput == true then
+      return true
+    end
+    return _love_keyboard_hasTextInput()
+  end
+
+  local _love_event_pump = love.event.pump
+  function love.event.pump(...)
+    local res = love.js.eval('window.Module.Browser.getInput();');
+    if res and res ~= '' then
+      love.event.push('textinput', res)
+    end
+    _love_event_pump(...)
+  end
 end

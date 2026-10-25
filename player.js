@@ -1,6 +1,6 @@
 /*
 This file is part of "love.js" by 2dengine.
-https://2dengine.com/doc/lovejs.html
+https://2dengine.com/
 
 MIT License
 

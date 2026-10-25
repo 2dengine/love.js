@@ -1,6 +1,6 @@
 --[[
 This file is part of "love.js" by 2dengine.
-https://2dengine.com/doc/lovejs.html
+https://2dengine.com/
 
 MIT License
 
@@ -25,8 +25,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 
--- normalize.lua is a series of hacks which ensure that
+-- normalize1.lua is a series of hacks which ensure that
 -- love.js behaves more closely to the downloadable version
+
 love.js = {}
 local cache = {}
 function love.js.eval(cmd)
@@ -60,16 +61,6 @@ end
 
 local lfs = love.filesystem
 
---[[
--- hack that removes the leading slash from the identity string ("/love")
-local _lfs_getIdentity = lfs.getIdentity
-function lfs.getIdentity()
-  local ident = _lfs_getIdentity()
-  ident = ident:gsub("^/+", "")
-  return ident
-end
-]]
-
 local _lfs_getInfo = lfs.getInfo
 local _lfs_read = lfs.read
 function lfs.read(fn, ...)
@@ -97,4 +88,8 @@ if reg then
     end
     return _File_open(file, ...)
   end
+end
+
+function love.js.getWebOS()
+  return 'Unknown'
 end

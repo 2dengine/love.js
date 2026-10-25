@@ -751,23 +751,17 @@ var Love = (function() {
         return ASM_CONSTS[code].apply(null, args)
       }
 
-      function listenOnce(object, event, func) {
-        object.addEventListener(event, func, {
-          "once": true
-        })
-      }
-
       function autoResumeAudioContext(ctx, elements) {
-        if (!elements) {
-          elements = [document, document.getElementById("canvas")]
-        }
-        ["keydown", "mousedown", "touchstart"].forEach(function(event) {
+        if (!elements)
+          elements = [document, document.getElementById("canvas")];
+
+        ["keydown", "mousedown", "touchstart"].forEach(function(n) {
           elements.forEach(function(element) {
             if (element) {
-              listenOnce(element, event, function() {
+              element.addEventListener(n, function() {
                 if (ctx.state === "suspended")
                   ctx.resume()
-              })
+              }, { 'once': true })
             }
           })
         })
@@ -5545,6 +5539,100 @@ var Love = (function() {
               func()
             }
           }, timeout)
+        },
+        
+        // Gets the clipboard contents
+        getClipboard: function() {
+          var clipboard = navigator.clipboard;
+          if (!clipboard)
+            return '';
+          if (clipboard.text !== undefined)
+            return clipboard.text;
+
+          function sync_clipboard() {
+            clipboard.readText()
+              .then(function (text) {
+                clipboard.permission = 'granted';
+                clipboard.text = text;
+              })
+              .catch(function (error) {
+                //console.log(error);
+              })
+              .finally(function() {
+                if (clipboard.permission == 'granted')
+                  setTimeout(sync_clipboard, 10);
+              });
+          }
+
+          clipboard.permission = 'prompt';
+          clipboard.text = clipboard.text || '';
+          sync_clipboard();
+          return '';
+        },
+        
+        setClipboard: function(text) {
+          var clipboard = navigator.clipboard;
+          if (!clipboard)
+            return;
+          clipboard.text = text;
+          navigator.clipboard.writeText(text)
+            .catch(function () {});
+          document.execCommand('copy');
+        },
+        
+        // Enables the on-screen keyboard on mobile devices
+        setInput: function(enabled) {
+          var canvas = document.getElementById('canvas');
+          var keyboard = document.getElementById('keyboard');
+
+          if (enabled) {
+            if (!keyboard) {
+              keyboard = document.createElement('INPUT');
+              keyboard.id = 'keyboard';
+              keyboard.setAttribute('autocomplete', 'off');
+              keyboard.setAttribute('autocorrect', 'off');
+              keyboard.setAttribute('autocapitalize', 'off');
+              keyboard.setAttribute('spellcheck', 'false');
+              keyboard.setAttribute('inputmode', 'text');
+              canvas.parentElement.insertBefore(keyboard, canvas);
+            }
+            keyboard.setAttribute('inputmode', 'text');
+            var elements = [ document, canvas ];
+            ["touchstart", "touchend"].forEach(function(n) {
+              elements.forEach(function(element) {
+                if (element) {
+                  element.addEventListener(n, function() {
+                    var keyboard = document.getElementById('keyboard');
+                    if (keyboard) {
+                      var mode = keyboard.getAttribute('inputmode');
+                      if (mode == 'text')
+                        keyboard.focus();
+                    }
+                  }, { 'once': true })
+                }
+              })
+            })
+            keyboard.focus();
+          } else {
+            if (keyboard) {
+              if (document.activeElement === keyboard) {
+                document.activeElement.blur();
+                canvas.focus();
+              }
+              keyboard.setAttribute('inputmode', 'none');
+              //keyboard.parentElement.removeChild(keyboard);
+            }
+          }
+        },
+        
+        getInput: function() {
+          var value = '';
+          var keyboard = document.getElementById('keyboard');
+          if (keyboard) {
+            value = keyboard.value;
+            keyboard.value = '';
+          }
+          return value;
         },
       };
 
